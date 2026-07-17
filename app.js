@@ -141,6 +141,7 @@ document.addEventListener('DOMContentLoaded', () => {
     userControls.style.display = 'none';
     loginBtn.style.display = 'flex';
     userEmailText.textContent = '';
+    setBellState(false);
   }
 
   function disableAuthInputs() {
@@ -322,7 +323,14 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   async function toggleSubscription() {
-    if (!supabase || !currentUser) return;
+    if (!currentUser) {
+      // Prompt guest to sign in to receive updates
+      isLoginSkipped = false;
+      authOverlay.classList.remove('hidden');
+      showAuthMessage("Please sign in or sign up to subscribe to email notifications!", "success");
+      return;
+    }
+    if (!supabase) return;
     
     const isCurrentlySubscribed = subscribeBell.classList.contains('subscribed');
     const newSubscriptionState = !isCurrentlySubscribed;
