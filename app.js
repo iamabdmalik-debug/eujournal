@@ -58,6 +58,23 @@ document.addEventListener('DOMContentLoaded', () => {
   let currentUser = null;
   let isLoginSkipped = false;
 
+  // --- Helper functions for Image Optimization ---
+  function getWebpUrl(url) {
+    if (!url) return '';
+    if (url.includes('assets/images/')) {
+      return url.replace(/\.(jpg|jpeg|png)$/i, '.webp');
+    }
+    return url;
+  }
+
+  function getThumbnailUrl(url) {
+    if (!url) return '';
+    if (url.includes('assets/images/') && !url.includes('_thumb.')) {
+      return url.replace(/\.(jpg|jpeg|png|webp|avif)$/i, '_thumb.webp');
+    }
+    return url;
+  }
+
   // --- Initialize Application ---
   initApp();
 
@@ -159,8 +176,8 @@ document.addEventListener('DOMContentLoaded', () => {
   // --- View Switching Control ---
   function updateViewVisibility() {
     if (!currentUser && !isLoginSkipped) {
-      // Unauthenticated and not skipped: hide content and show auth overlay
-      countrySelectionView.style.display = 'none';
+      // Unauthenticated and not skipped: show country selector in background, show auth overlay
+      countrySelectionView.style.display = 'block';
       journalSection.style.display = 'none';
       backToCountriesBtn.style.display = 'none';
       statsPillGroup.style.display = 'none';
@@ -177,7 +194,7 @@ document.addEventListener('DOMContentLoaded', () => {
       statsPillGroup.style.display = 'none';
       
       // Reset Hero to default
-      heroSection.style.backgroundImage = "url('assets/images/hero_bg.jpg')";
+      heroSection.style.backgroundImage = "url('assets/images/hero_bg.webp')";
       heroTitleText.textContent = "European Journal";
       heroTaglineText.textContent = "Solo Travel Diaries";
       heroLeadText.textContent = TRAVEL_DATA.tagline;
@@ -193,34 +210,27 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // --- Render Country Selection Grid ---
   function renderCountryGrid() {
-    countryGrid.innerHTML = '';
-    TRAVEL_DATA.countries.forEach(country => {
-      const card = document.createElement('div');
-      card.className = 'country-card';
-      card.dataset.id = country.id;
-
-      // Use background image if provided, else fall back to a CSS gradient
-      const bgStyle = country.coverImage
-        ? `background-image: url('${country.coverImage}');`
+    const cardsHTML = TRAVEL_DATA.countries.map(country => {
+      const thumbUrl = getThumbnailUrl(country.coverImage);
+      const bgStyle = thumbUrl
+        ? `background-image: url('${thumbUrl}');`
         : `background: linear-gradient(135deg, hsl(220, 25%, 18%), hsl(220, 20%, 10%));`;
       
-      card.innerHTML = `
-        <div class="country-card-bg" style="${bgStyle}"></div>
-        <div class="country-card-overlay"></div>
-        <div class="country-card-content">
-          <div class="country-card-flag">${country.flag}</div>
-          <h3 class="country-card-name">${country.name}</h3>
-          <p class="country-card-tagline">${country.tagline}</p>
-          <button class="country-card-btn">Explore Journal <i class="fa-solid fa-arrow-right"></i></button>
+      return `
+        <div class="country-card" data-id="${country.id}">
+          <div class="country-card-bg" style="${bgStyle}"></div>
+          <div class="country-card-overlay"></div>
+          <div class="country-card-content">
+            <div class="country-card-flag">${country.flag}</div>
+            <h3 class="country-card-name">${country.name}</h3>
+            <p class="country-card-tagline">${country.tagline}</p>
+            <button class="country-card-btn">Explore Journal <i class="fa-solid fa-arrow-right"></i></button>
+          </div>
         </div>
       `;
-      
-      card.addEventListener('click', () => {
-        selectCountry(country.id);
-      });
-      
-      countryGrid.appendChild(card);
-    });
+    }).join('');
+    
+    countryGrid.innerHTML = cardsHTML;
   }
 
   // --- Select Country and Trigger Transition ---
@@ -239,7 +249,7 @@ document.addEventListener('DOMContentLoaded', () => {
       
       // Update Hero to match country (use CSS gradient if no image set)
       if (country.coverImage) {
-        heroSection.style.backgroundImage = `url('${country.coverImage}')`;
+        heroSection.style.backgroundImage = `url('${getWebpUrl(country.coverImage)}')`;
       } else {
         heroSection.style.backgroundImage = 'none';
         heroSection.style.background = 'linear-gradient(135deg, hsl(220, 30%, 12%), hsl(240, 25%, 8%))';
@@ -357,18 +367,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // --- Render Sidebar based on active country ---
   function renderSidebar() {
-    chapterList.innerHTML = '';
     const country = TRAVEL_DATA.countries.find(c => c.id === activeCountryId);
-    if (!country) return;
+    if (!country) {
+      chapterList.innerHTML = '';
+      return;
+    }
 
-    country.chapters.forEach((chapter) => {
-      const li = document.createElement('li');
-      li.className = 'chapter-nav-item';
-      
-      const button = document.createElement('button');
-      button.className = `chapter-btn ${chapter.id === activeChapterId ? 'active' : ''}`;
-      button.dataset.id = chapter.id;
-      
+    const itemsHTML = country.chapters.map((chapter) => {
       let iconHTML = '<i class="fa-solid fa-circle"></i>';
       if (chapter.id.includes('un')) iconHTML = '<i class="fa-solid fa-building-ngo"></i>';
       else if (chapter.id.includes('jet')) iconHTML = '<i class="fa-solid fa-water"></i>';
@@ -376,23 +381,20 @@ document.addEventListener('DOMContentLoaded', () => {
       else if (chapter.id.includes('chamonix') || chapter.id.includes('midi')) iconHTML = '<i class="fa-solid fa-mountain"></i>';
       else if (chapter.id.includes('paris') || chapter.id.includes('eiffel')) iconHTML = '<i class="fa-solid fa-monument"></i>';
 
-      button.innerHTML = `
-        <span style="display: flex; align-items: center; gap: 8px;">
-          ${iconHTML}
-          <span>${chapter.title}</span>
-        </span>
-        <span class="btn-subtitle">${chapter.subtitle}</span>
+      return `
+        <li class="chapter-nav-item">
+          <button class="chapter-btn ${chapter.id === activeChapterId ? 'active' : ''}" data-id="${chapter.id}">
+            <span style="display: flex; align-items: center; gap: 8px;">
+              ${iconHTML}
+              <span>${chapter.title}</span>
+            </span>
+            <span class="btn-subtitle">${chapter.subtitle}</span>
+          </button>
+        </li>
       `;
-      
-      button.addEventListener('click', () => {
-        if (activeChapterId !== chapter.id) {
-          switchChapter(chapter.id);
-        }
-      });
-      
-      li.appendChild(button);
-      chapterList.appendChild(li);
-    });
+    }).join('');
+
+    chapterList.innerHTML = itemsHTML;
   }
 
   // --- Switch Chapter (with transition) ---
@@ -438,7 +440,7 @@ document.addEventListener('DOMContentLoaded', () => {
           // Real image
           return `
             <div class="gallery-card" data-index="${index}">
-              <img src="${img.url}" alt="${img.caption}" loading="lazy">
+              <img src="${getThumbnailUrl(img.url)}" alt="${img.caption}" loading="lazy">
               <div class="gallery-overlay">
                 <span class="gallery-caption">${img.caption}</span>
               </div>
@@ -503,6 +505,13 @@ document.addEventListener('DOMContentLoaded', () => {
     if (currentGallery.length === 0) return;
     currentImageIndex = index;
     updateLightboxImage();
+    
+    // Prevent layout jump when hiding scrollbar
+    const scrollbarWidth = window.innerWidth - document.documentElement.clientWidth;
+    if (scrollbarWidth > 0) {
+      document.body.style.paddingRight = `${scrollbarWidth}px`;
+    }
+    
     lightbox.classList.add('active');
     document.body.style.overflow = 'hidden';
   }
@@ -510,6 +519,7 @@ document.addEventListener('DOMContentLoaded', () => {
   function closeLightbox() {
     lightbox.classList.remove('active');
     document.body.style.overflow = '';
+    document.body.style.paddingRight = '';
   }
 
   function nextImage() {
@@ -529,7 +539,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!item) return;
     
     lightboxImg.style.opacity = '0.5';
-    lightboxImg.src = item.url;
+    lightboxImg.src = getWebpUrl(item.url);
     lightboxImg.alt = item.caption;
     lightboxCaption.textContent = item.caption;
     
@@ -549,6 +559,25 @@ document.addEventListener('DOMContentLoaded', () => {
       e.preventDefault();
       if (activeCountryId !== null) {
         showCountrySelection();
+      }
+    });
+
+    // Event delegation for sidebar chapters selection
+    chapterList.addEventListener('click', (e) => {
+      const button = e.target.closest('.chapter-btn');
+      if (button) {
+        const chapterId = button.dataset.id;
+        if (activeChapterId !== chapterId) {
+          switchChapter(chapterId);
+        }
+      }
+    });
+
+    // Event delegation for country card selection
+    countryGrid.addEventListener('click', (e) => {
+      const card = e.target.closest('.country-card');
+      if (card) {
+        selectCountry(card.dataset.id);
       }
     });
 
