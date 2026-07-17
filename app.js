@@ -47,6 +47,8 @@ document.addEventListener('DOMContentLoaded', () => {
   const userEmailText = document.getElementById('user-email');
   const logoutBtn = document.getElementById('logout-btn');
   const subscribeBell = document.getElementById('subscribe-bell');
+  const authCloseBtn = document.getElementById('auth-close-btn');
+  const loginBtn = document.getElementById('login-btn');
 
   // --- State Variables ---
   let activeCountryId = null; // Starts null to show country selection screen
@@ -55,6 +57,7 @@ document.addEventListener('DOMContentLoaded', () => {
   let currentImageIndex = 0;
   let supabase = null;
   let currentUser = null;
+  let isLoginSkipped = false;
 
   // --- Initialize Application ---
   initApp();
@@ -122,6 +125,7 @@ document.addEventListener('DOMContentLoaded', () => {
   // --- Auth UI Management ---
   function handleUserAuthenticated(user) {
     authOverlay.classList.add('hidden');
+    loginBtn.style.display = 'none';
     userEmailText.textContent = user.email;
     userControls.style.display = 'flex';
     clearAuthMessage();
@@ -129,9 +133,13 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function handleUserUnauthenticated() {
-    authOverlay.classList.remove('hidden');
+    if (isLoginSkipped) {
+      authOverlay.classList.add('hidden');
+    } else {
+      authOverlay.classList.remove('hidden');
+    }
     userControls.style.display = 'none';
-    statsPillGroup.style.display = 'none';
+    loginBtn.style.display = 'flex';
     userEmailText.textContent = '';
   }
 
@@ -152,12 +160,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // --- View Switching Control ---
   function updateViewVisibility() {
-    if (!currentUser) {
-      // Unauthenticated: hide everything
+    if (!currentUser && !isLoginSkipped) {
+      // Unauthenticated and not skipped: hide content and show auth overlay
       countrySelectionView.style.display = 'none';
       journalSection.style.display = 'none';
       backToCountriesBtn.style.display = 'none';
       statsPillGroup.style.display = 'none';
+      authOverlay.classList.remove('hidden');
       return;
     }
 
@@ -402,6 +411,7 @@ document.addEventListener('DOMContentLoaded', () => {
     try {
       const { error } = await supabase.auth.signOut();
       if (error) throw error;
+      isLoginSkipped = false;
       activeCountryId = null;
       activeChapterId = null;
     } catch (err) {
@@ -601,9 +611,23 @@ document.addEventListener('DOMContentLoaded', () => {
     backToCountriesBtn.addEventListener('click', showCountrySelection);
     headerLogoHome.addEventListener('click', (e) => {
       e.preventDefault();
-      if (currentUser && activeCountryId !== null) {
+      if (activeCountryId !== null) {
         showCountrySelection();
       }
+    });
+
+    // Close Auth overlay to skip login
+    authCloseBtn.addEventListener('click', () => {
+      isLoginSkipped = true;
+      authOverlay.classList.add('hidden');
+      updateViewVisibility();
+    });
+
+    // Show Auth overlay when clicking Sign In header button
+    loginBtn.addEventListener('click', () => {
+      isLoginSkipped = false;
+      authOverlay.classList.remove('hidden');
+      clearAuthMessage();
     });
 
     // Auth Form Tab Toggling

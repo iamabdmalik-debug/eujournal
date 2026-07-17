@@ -17,6 +17,10 @@
   <!-- Authentication Overlay Screen -->
   <div id="auth-overlay" class="auth-overlay">
     <div class="auth-card glass-panel">
+      <!-- Close button to skip login -->
+      <button id="auth-close-btn" class="auth-close-btn" aria-label="Close" title="Browse without logging in">
+        <i class="fa-solid fa-xmark"></i>
+      </button>
       <div class="auth-header">
         <i class="fa-solid fa-compass auth-logo-icon"></i>
         <h2>European Journal</h2>
@@ -108,6 +112,11 @@
             <i class="fa-solid fa-right-from-bracket"></i>
           </button>
         </div>
+
+        <!-- Guest Sign In Button -->
+        <button class="back-btn-header" id="login-btn" style="display: none;">
+          <i class="fa-solid fa-right-to-bracket"></i> Sign In
+        </button>
 
         <!-- Theme Toggle -->
         <button class="theme-toggle-btn" id="theme-toggle" aria-label="Toggle Theme">
