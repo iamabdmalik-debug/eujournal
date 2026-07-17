@@ -46,7 +46,6 @@ document.addEventListener('DOMContentLoaded', () => {
   const userControls = document.getElementById('user-controls');
   const userEmailText = document.getElementById('user-email');
   const logoutBtn = document.getElementById('logout-btn');
-  const subscribeBell = document.getElementById('subscribe-bell');
   const authCloseBtn = document.getElementById('auth-close-btn');
   const loginBtn = document.getElementById('login-btn');
 
@@ -129,7 +128,6 @@ document.addEventListener('DOMContentLoaded', () => {
     userEmailText.textContent = user.email;
     userControls.style.display = 'flex';
     clearAuthMessage();
-    fetchSubscriptionState(user.id);
   }
 
   function handleUserUnauthenticated() {
@@ -141,7 +139,6 @@ document.addEventListener('DOMContentLoaded', () => {
     userControls.style.display = 'none';
     loginBtn.style.display = 'flex';
     userEmailText.textContent = '';
-    setBellState(false);
   }
 
   function disableAuthInputs() {
@@ -282,74 +279,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }, 300);
   }
 
-  // --- Supabase Database Subscription Operations ---
-  async function fetchSubscriptionState(userId) {
-    if (!supabase) return;
-    try {
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('subscribed_to_updates')
-        .eq('id', userId)
-        .maybeSingle();
-
-      if (error) throw error;
-      
-      if (data) {
-        setBellState(data.subscribed_to_updates);
-      } else {
-        await supabase.from('profiles').insert({
-          id: userId,
-          email: currentUser.email,
-          subscribed_to_updates: false
-        });
-        setBellState(false);
-      }
-    } catch (err) {
-      console.warn("Could not retrieve subscription settings:", err.message);
-    }
-  }
-
-  function setBellState(subscribed) {
-    const bellIcon = subscribeBell.querySelector('i');
-    if (subscribed) {
-      subscribeBell.classList.add('subscribed');
-      bellIcon.className = 'fa-solid fa-bell';
-      subscribeBell.title = "Subscribed to updates. Click to unsubscribe.";
-    } else {
-      subscribeBell.classList.remove('subscribed');
-      bellIcon.className = 'fa-regular fa-bell';
-      subscribeBell.title = "Click to subscribe to email updates.";
-    }
-  }
-
-  async function toggleSubscription() {
-    if (!currentUser) {
-      // Prompt guest to sign in to receive updates
-      isLoginSkipped = false;
-      authOverlay.classList.remove('hidden');
-      showAuthMessage("Please sign in or sign up to subscribe to email notifications!", "success");
-      return;
-    }
-    if (!supabase) return;
-    
-    const isCurrentlySubscribed = subscribeBell.classList.contains('subscribed');
-    const newSubscriptionState = !isCurrentlySubscribed;
-    
-    try {
-      const { error } = await supabase
-        .from('profiles')
-        .update({ subscribed_to_updates: newSubscriptionState })
-        .eq('id', currentUser.id);
-
-      if (error) throw error;
-      
-      setBellState(newSubscriptionState);
-    } catch (err) {
-      console.error("Error toggling subscription status:", err);
-      alert("Failed to update email preferences. Please try again.");
-    }
-  }
-
   // --- Auth Form Submissions ---
   async function handleSignIn(e) {
     e.preventDefault();
@@ -378,7 +307,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const email = document.getElementById('signup-email').value;
     const password = document.getElementById('signup-password').value;
-    const subscribe = document.getElementById('signup-subscribe').checked;
 
     showAuthMessage("Creating account...", "success");
 
@@ -396,7 +324,7 @@ document.addEventListener('DOMContentLoaded', () => {
           .insert({
             id: data.user.id,
             email: data.user.email,
-            subscribed_to_updates: subscribe
+            subscribed_to_updates: true
           });
 
         if (profileError) {
@@ -661,9 +589,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Logout
     logoutBtn.addEventListener('click', handleSignOut);
-
-    // Toggle Subscription Preference
-    subscribeBell.addEventListener('click', toggleSubscription);
 
     // Header Scroll Indicator
     window.addEventListener('scroll', () => {
