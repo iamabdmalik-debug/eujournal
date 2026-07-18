@@ -21,7 +21,7 @@
 <body>
 
   <!-- Authentication Overlay Screen -->
-  <div id="auth-overlay" class="auth-overlay">
+  <div id="auth-overlay" class="auth-overlay hidden">
     <div class="auth-card glass-panel">
       <!-- Close button to skip login -->
       <button id="auth-close-btn" class="auth-close-btn" aria-label="Close" title="Browse without logging in">
@@ -141,32 +141,32 @@
   <!-- Anchor to scroll down to -->
   <div id="main-content-anchor" style="position: relative; top: -80px;"></div>
 
-  <!-- City Tabs Selector Container -->
-  <div class="container" id="city-selector-view" style="display: none;">
+  <!-- City Selection Section -->
+  <section class="container city-selection-section" id="city-selector-view" style="display: none;">
     <!-- Rendered dynamically by app.js only if country has multiple cities -->
-  </div>
+  </section>
 
-  <!-- Main Layout Section (Journal Chapters View, Hidden by default) -->
-  <main class="container main-layout" id="journal-section" style="display: none;">
-    
-    <!-- Sidebar navigation -->
-    <aside class="sidebar glass-panel">
-      <h2 class="sidebar-title">
-        <i class="fa-solid fa-map-location-dot"></i> Chapters
-      </h2>
-      <ul class="chapter-nav-list" id="chapter-list">
-        <!-- Chapters loaded based on active city -->
-      </ul>
-    </aside>
+  <!-- Selected City Content Section -->
+  <section class="container selected-city-section" id="journal-section" style="display: none;">
+    <div class="main-layout france-main-layout">
+      <!-- Sidebar navigation -->
+      <aside class="sidebar glass-panel">
+        <h2 class="sidebar-title">
+          <i class="fa-solid fa-map-location-dot"></i> Chapters
+        </h2>
+        <ul class="chapter-nav-list" id="chapter-list">
+          <!-- Chapters loaded based on active city -->
+        </ul>
+      </aside>
 
-    <!-- Content details -->
-    <article class="content-area glass-panel" id="content-container">
-      <div class="chapter-content">
-        <p>Loading journal contents...</p>
-      </div>
-    </article>
-
-  </main>
+      <!-- Content details -->
+      <article class="content-area glass-panel" id="content-container">
+        <div class="chapter-content">
+          <p>Loading journal contents...</p>
+        </div>
+      </article>
+    </div>
+  </section>
 
   <!-- Image Lightbox Modal -->
   <div class="lightbox" id="image-lightbox">

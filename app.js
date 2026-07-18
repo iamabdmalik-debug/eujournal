@@ -1,5 +1,5 @@
 document.addEventListener('DOMContentLoaded', () => {
-  // Check if COUNTRY_DATA or COUNTRIES_META is loaded
+  // Check if COUNTRY_DATA is loaded (present on country subpages)
   const isCountryPage = (typeof COUNTRY_DATA !== 'undefined');
 
   // --- DOM Elements ---
@@ -55,8 +55,19 @@ document.addEventListener('DOMContentLoaded', () => {
   let supabase = null;
   let currentUser = null;
   
-  // Persistence for sign-in prompt
-  let isLoginSkipped = localStorage.getItem('wanderPagesSignInPromptSeen') === 'true';
+  // Transition state lock to prevent overlapping animations
+  let isTransitioning = false;
+
+  // Single shared modal Seen persistence logic
+  let isLoginSkipped = true; // Default to true (prevents flashing on subpages)
+  if (!isCountryPage) {
+    // Auto-open is ONLY allowed on the homepage
+    if (localStorage.getItem('wanderPagesSignInPromptSeen') !== 'true') {
+      isLoginSkipped = false;
+      // Mark as seen immediately BEFORE triggering modal to block duplicate loads
+      localStorage.setItem('wanderPagesSignInPromptSeen', 'true');
+    }
+  }
 
   // --- Helper functions for Image Optimization ---
   function getWebpUrl(url) {
@@ -65,7 +76,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (processed.includes('assets/images/')) {
       processed = processed.replace(/\.(jpg|jpeg|png)$/i, '.webp');
     }
-    // Ensure it starts with a leading slash to resolve correctly from nested subpages
+    // Ensure absolute path resolver to correct nested subdirectory path errors
     if (processed.startsWith('assets/')) {
       processed = '/' + processed;
     }
@@ -78,7 +89,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (processed.includes('assets/images/') && !processed.includes('_thumb.')) {
       processed = processed.replace(/\.(jpg|jpeg|png|webp|avif)$/i, '_thumb.webp');
     }
-    // Ensure it starts with a leading slash to resolve correctly from nested subpages
+    // Ensure absolute path resolver to correct nested subdirectory path errors
     if (processed.startsWith('assets/')) {
       processed = '/' + processed;
     }
@@ -107,7 +118,6 @@ document.addEventListener('DOMContentLoaded', () => {
     updateThemeIcon(savedTheme);
   }
 
-  // Toggle light/dark theme
   function toggleTheme() {
     const currentTheme = document.documentElement.getAttribute('data-theme');
     const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
@@ -154,7 +164,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // --- Auth UI Management ---
   function handleUserAuthenticated(user) {
-    if (authOverlay) authOverlay.classList.add('hidden');
+    closeAuthModal();
     if (loginBtn) loginBtn.style.display = 'none';
     if (userEmailText) userEmailText.textContent = user.email;
     if (userControls) userControls.style.display = 'flex';
@@ -167,13 +177,26 @@ document.addEventListener('DOMContentLoaded', () => {
         authOverlay.classList.add('hidden');
       } else {
         authOverlay.classList.remove('hidden');
-        // Prevent auto-showing prompt on next refreshes/pages once shown once
+        document.body.classList.add('modal-open');
+        document.body.style.overflow = 'hidden';
         localStorage.setItem('wanderPagesSignInPromptSeen', 'true');
       }
     }
     if (userControls) userControls.style.display = 'none';
     if (loginBtn) loginBtn.style.display = 'flex';
     if (userEmailText) userEmailText.textContent = '';
+  }
+
+  // Fully cleanup and close the authentication modal
+  function closeAuthModal() {
+    isLoginSkipped = true;
+    localStorage.setItem('wanderPagesSignInPromptSeen', 'true');
+    if (authOverlay) authOverlay.classList.add('hidden');
+    document.body.classList.remove('modal-open');
+    document.body.style.overflow = '';
+    document.body.style.paddingRight = '';
+    if (loginBtn) loginBtn.focus();
+    updateViewVisibility();
   }
 
   function disableAuthInputs() {
@@ -188,7 +211,6 @@ document.addEventListener('DOMContentLoaded', () => {
     authMessage.className = `auth-message ${type}`;
   }
 
-  // Clear authentication forms messages
   function clearAuthMessage() {
     if (!authMessage) return;
     authMessage.textContent = '';
@@ -220,10 +242,10 @@ document.addEventListener('DOMContentLoaded', () => {
       // Country subpage
       if (countrySelectionView) countrySelectionView.style.display = 'none';
       
-      // Correctly reveal the active view on subpages
+      // Correctly reveal the active views without overlapping
       if (activeCityId !== null) {
-        if (journalSection) journalSection.style.display = 'grid';
-        if (citySelectionView) citySelectionView.style.display = 'none';
+        if (journalSection) journalSection.style.display = 'block';
+        if (citySelectionView) citySelectionView.style.display = 'block'; // Keep selection cards visible at top
         if (statsPillGroup) statsPillGroup.style.display = 'flex';
       } else {
         if (journalSection) journalSection.style.display = 'none';
@@ -279,7 +301,7 @@ document.addEventListener('DOMContentLoaded', () => {
             : "High-altitude wonderland of soaring peaks and the Mont Blanc massif.";
           
           return `
-            <div class="city-selection-card ${city.id === activeCityId ? 'active' : ''}" data-id="${city.id}" tabindex="0" aria-label="Explore travels in ${city.name}">
+            <div class="city-selection-card ${city.id === activeCityId ? 'active' : ''}" data-id="${city.id}" tabindex="0" role="button" aria-pressed="${city.id === activeCityId ? 'true' : 'false'}" aria-label="Explore travels in ${city.name}">
               <div class="city-selection-card-bg" style="background-image: url('${thumbUrl}');"></div>
               <div class="city-selection-card-overlay"></div>
               <div class="city-selection-card-content">
@@ -297,8 +319,6 @@ document.addEventListener('DOMContentLoaded', () => {
     cards.forEach(card => {
       // Click selection
       card.addEventListener('click', () => {
-        cards.forEach(c => c.classList.remove('active'));
-        card.classList.add('active');
         selectCity(card.dataset.id);
       });
       
@@ -306,18 +326,33 @@ document.addEventListener('DOMContentLoaded', () => {
       card.addEventListener('keydown', (e) => {
         if (e.key === 'Enter' || e.key === ' ') {
           e.preventDefault();
-          cards.forEach(c => c.classList.remove('active'));
-          card.classList.add('active');
           selectCity(card.dataset.id);
         }
       });
     });
   }
 
-  // --- Select City ---
+  // --- Select City with Transition and Scroll ---
   function selectCity(cityId) {
+    if (activeCityId === cityId) return; // Prevent re-rendering active city
+    if (isTransitioning) return; // Block double-clicks
+
     const city = COUNTRY_DATA.cities.find(c => c.id === cityId);
     if (!city) return;
+
+    // Highlight active card
+    if (citySelectionView) {
+      const cards = citySelectionView.querySelectorAll('.city-selection-card');
+      cards.forEach(c => {
+        if (c.dataset.id === cityId) {
+          c.classList.add('active');
+          c.setAttribute('aria-pressed', 'true');
+        } else {
+          c.classList.remove('active');
+          c.setAttribute('aria-pressed', 'false');
+        }
+      });
+    }
 
     activeCityId = cityId;
 
@@ -327,15 +362,42 @@ document.addEventListener('DOMContentLoaded', () => {
       activeChapterId = null;
     }
 
-    // Synchronize card selection highlight
-    if (citySelectionView) {
-      const cards = citySelectionView.querySelectorAll('.city-selection-card');
-      cards.forEach(c => {
-        if (c.dataset.id === cityId) c.classList.add('active');
-        else c.classList.remove('active');
-      });
-    }
+    const layoutGrid = journalSection.querySelector('.main-layout');
 
+    // If journalSection is currently hidden (first-time selection)
+    if (journalSection.style.display === 'none' || !journalSection.style.display) {
+      renderSelectedCityContent(city);
+    } else {
+      // A transition is already active, let's fade out, switch, and fade in
+      isTransitioning = true;
+
+      if (layoutGrid) {
+        layoutGrid.style.transition = 'opacity 180ms cubic-bezier(0.22, 1, 0.36, 1), transform 180ms cubic-bezier(0.22, 1, 0.36, 1)';
+        layoutGrid.style.opacity = '0';
+        layoutGrid.style.transform = 'translateY(10px)';
+
+        setTimeout(() => {
+          renderSelectedCityContent(city);
+
+          // Force browser reflow layout check
+          layoutGrid.offsetHeight;
+
+          layoutGrid.style.transition = 'opacity 280ms cubic-bezier(0.22, 1, 0.36, 1), transform 280ms cubic-bezier(0.22, 1, 0.36, 1)';
+          layoutGrid.style.opacity = '1';
+          layoutGrid.style.transform = 'translateY(0)';
+
+          setTimeout(() => {
+            isTransitioning = false;
+          }, 280);
+        }, 180);
+      } else {
+        renderSelectedCityContent(city);
+      }
+    }
+  }
+
+  // Render content elements and scroll
+  function renderSelectedCityContent(city) {
     // Update Hero to match city details
     if (city.heroImage) {
       heroSection.style.backgroundImage = `url('${getWebpUrl(city.heroImage)}')`;
@@ -351,13 +413,16 @@ document.addEventListener('DOMContentLoaded', () => {
     statsPillGroup.style.display = 'flex';
 
     // Show content container
-    journalSection.style.display = 'grid';
+    journalSection.style.display = 'block';
     journalSection.classList.add('fade-in');
 
     renderSidebar();
     if (activeChapterId) {
       loadChapter(activeChapterId, false);
     }
+
+    // Smoothly scroll down to the beginning of the selected city section
+    journalSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
 
   // --- Auth Form Submissions ---
@@ -428,7 +493,6 @@ document.addEventListener('DOMContentLoaded', () => {
     try {
       const { error } = await supabase.auth.signOut();
       if (error) throw error;
-      // Keep true so it does not auto-open after logging out
       isLoginSkipped = true;
       activeCityId = null;
       activeChapterId = null;
@@ -653,6 +717,7 @@ document.addEventListener('DOMContentLoaded', () => {
         </div>
       `;
 
+      // Remove loading indicator right before content insertion
       contentContainer.innerHTML = htmlContent;
 
       // Bind click listeners for internal city nav
@@ -672,7 +737,10 @@ document.addEventListener('DOMContentLoaded', () => {
           // Reset selector cards active classes
           if (citySelectionView) {
             const cards = citySelectionView.querySelectorAll('.city-selection-card');
-            cards.forEach(c => c.classList.remove('active'));
+            cards.forEach(c => {
+              c.classList.remove('active');
+              c.setAttribute('aria-pressed', 'false');
+            });
           }
           
           journalSection.style.display = 'none';
@@ -737,6 +805,7 @@ document.addEventListener('DOMContentLoaded', () => {
     document.body.style.overflow = 'hidden';
   }
 
+  // Close lightbox modal and restore page scroll parameters
   function closeLightbox() {
     if (!lightbox) return;
     lightbox.classList.remove('active');
@@ -790,11 +859,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Close Auth overlay to skip login
     if (authCloseBtn) {
-      authCloseBtn.addEventListener('click', () => {
-        isLoginSkipped = true;
-        localStorage.setItem('wanderPagesSignInPromptSeen', 'true');
-        if (authOverlay) authOverlay.classList.add('hidden');
-        updateViewVisibility();
+      authCloseBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        closeAuthModal();
       });
     }
 
