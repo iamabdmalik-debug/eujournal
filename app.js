@@ -59,18 +59,28 @@ document.addEventListener('DOMContentLoaded', () => {
   // --- Helper functions for Image Optimization ---
   function getWebpUrl(url) {
     if (!url) return '';
-    if (url.includes('assets/images/')) {
-      return url.replace(/\.(jpg|jpeg|png)$/i, '.webp');
+    let processed = url;
+    if (processed.includes('assets/images/')) {
+      processed = processed.replace(/\.(jpg|jpeg|png)$/i, '.webp');
     }
-    return url;
+    // Ensure it starts with a leading slash to resolve correctly from nested subpages
+    if (processed.startsWith('assets/')) {
+      processed = '/' + processed;
+    }
+    return processed;
   }
 
   function getThumbnailUrl(url) {
     if (!url) return '';
-    if (url.includes('assets/images/') && !url.includes('_thumb.')) {
-      return url.replace(/\.(jpg|jpeg|png|webp|avif)$/i, '_thumb.webp');
+    let processed = url;
+    if (processed.includes('assets/images/') && !processed.includes('_thumb.')) {
+      processed = processed.replace(/\.(jpg|jpeg|png|webp|avif)$/i, '_thumb.webp');
     }
-    return url;
+    // Ensure it starts with a leading slash to resolve correctly from nested subpages
+    if (processed.startsWith('assets/')) {
+      processed = '/' + processed;
+    }
+    return processed;
   }
 
   // --- Initialize Application ---
@@ -203,6 +213,17 @@ document.addEventListener('DOMContentLoaded', () => {
     } else {
       // Country subpage
       if (countrySelectionView) countrySelectionView.style.display = 'none';
+      
+      // Correctly reveal the active view on subpages
+      if (activeCityId !== null) {
+        if (journalSection) journalSection.style.display = 'grid';
+        if (citySelectionView) citySelectionView.style.display = 'none';
+        if (statsPillGroup) statsPillGroup.style.display = 'flex';
+      } else {
+        if (journalSection) journalSection.style.display = 'none';
+        if (citySelectionView) citySelectionView.style.display = 'block';
+        if (statsPillGroup) statsPillGroup.style.display = 'none';
+      }
     }
   }
 

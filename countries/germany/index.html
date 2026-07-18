@@ -197,5 +197,20 @@
   <script src="/config.js" defer></script>
   <script src="/data/germany-data.js" defer></script>
   <script src="/app.js" defer></script>
+  <script>
+    setTimeout(() => {
+      const container = document.getElementById('content-container');
+      if (container && container.innerHTML.includes('Loading journal contents...')) {
+        container.innerHTML = `
+          <div class="chapter-content" style="text-align: center; padding: 40px;">
+            <i class="fa-solid fa-circle-exclamation" style="font-size: 3rem; color: var(--primary-color); margin-bottom: 16px;"></i>
+            <h2>Oops! Unable to load travel diaries</h2>
+            <p style="margin-top: 12px; color: var(--text-muted);">Please check your internet connection or try refreshing the page. If you are browsing locally, make sure you are running a local development server.</p>
+            <button onclick="window.location.reload()" class="btn-secondary-outline" style="margin: 20px auto 0;">Retry Page Load</button>
+          </div>
+        `;
+      }
+    }, 4000);
+  </script>
 </body>
 </html>
