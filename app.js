@@ -59,15 +59,7 @@ document.addEventListener('DOMContentLoaded', () => {
   let isTransitioning = false;
 
   // Single shared modal Seen persistence logic
-  let isLoginSkipped = true; // Default to true (prevents flashing on subpages)
-  if (!isCountryPage) {
-    // Auto-open is ONLY allowed on the homepage
-    if (localStorage.getItem('wanderPagesSignInPromptSeen') !== 'true') {
-      isLoginSkipped = false;
-      // Mark as seen immediately BEFORE triggering modal to block duplicate loads
-      localStorage.setItem('wanderPagesSignInPromptSeen', 'true');
-    }
-  }
+  let isLoginSkipped = true; // Default to true (blocks auto-flashing on load/navigate)
 
   // --- Helper functions for Image Optimization ---
   function getWebpUrl(url) {
@@ -103,6 +95,7 @@ document.addEventListener('DOMContentLoaded', () => {
     setupTheme();
     setupSupabase();
     setupEventListeners();
+    setupFirstVisitPrompt(); // Handle first visit popup checks on page lifecycle
     
     if (isCountryPage) {
       setupCountryPage();
@@ -131,6 +124,33 @@ document.addEventListener('DOMContentLoaded', () => {
     const icon = themeToggle.querySelector('i');
     if (icon) {
       icon.className = theme === 'dark' ? 'fa-solid fa-sun' : 'fa-solid fa-moon';
+    }
+  }
+
+  // --- First Visit Prompt Logic ---
+  function setupFirstVisitPrompt() {
+    // Detect if we are on the homepage (/ or /index.html)
+    const isHomepage = window.location.pathname === '/' || 
+                       window.location.pathname === '/index.html' || 
+                       window.location.pathname.endsWith('/index.html') || 
+                       window.location.pathname === '';
+
+    if (isHomepage && localStorage.getItem('wanderPagesSignInPromptSeen') !== 'true') {
+      // Save key immediately BEFORE opening the modal to block double triggers
+      localStorage.setItem('wanderPagesSignInPromptSeen', 'true');
+      isLoginSkipped = false;
+      
+      // Delay modal display slightly for smoother first render (300ms)
+      setTimeout(() => {
+        // If user logged in during delay, don't open
+        if (currentUser) return;
+        
+        if (authOverlay) {
+          authOverlay.classList.remove('hidden');
+          document.body.classList.add('modal-open');
+          document.body.style.overflow = 'hidden';
+        }
+      }, 300);
     }
   }
 
@@ -871,6 +891,8 @@ document.addEventListener('DOMContentLoaded', () => {
       loginBtn.addEventListener('click', () => {
         isLoginSkipped = false;
         if (authOverlay) authOverlay.classList.remove('hidden');
+        document.body.classList.add('modal-open');
+        document.body.style.overflow = 'hidden';
         clearAuthMessage();
       });
     }
