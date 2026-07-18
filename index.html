@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>European Travel Journal - Solo Trip</title>
-  <meta name="description" content="A premium, secure travel journal exploring the landmarks of Switzerland and France, featuring Geneva, Paris, and Chamonix-Mont-Blanc.">
+  <title>Wander Pages - Stories collected along the way</title>
+  <meta name="description" content="Wander Pages is a personal travel diary sharing photographs, memories and stories collected along the way.">
   
   <!-- Font & CDN Optimizations -->
   <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
@@ -29,8 +29,8 @@
       </button>
       <div class="auth-header">
         <i class="fa-solid fa-compass auth-logo-icon"></i>
-        <h2>European Journal</h2>
-        <p>Sign in to receive email updates whenever the journal is updated.</p>
+        <h2>Wander Pages</h2>
+        <p>Sign in to receive email updates whenever new travel pages are added.</p>
       </div>
       
       <!-- Tabs for toggling sign-in / sign-up -->
@@ -86,14 +86,14 @@
   <header id="main-header">
     <div class="container nav-container">
       <a href="#" class="logo" id="header-logo-home">
-        <i class="fa-solid fa-compass"></i> Euro<span>Journal</span>
+        <i class="fa-solid fa-compass"></i> Wander<span>Pages</span>
       </a>
       
       <!-- Dynamic Stats Badges (Hidden on main country selector page) -->
       <div class="stats-pill-group" id="stats-pill-group" style="display: none;">
-        <span class="stats-pill" id="stat-country"><i class="fa-solid fa-earth-europe"></i> Country</span>
-        <span class="stats-pill" id="stat-city"><i class="fa-solid fa-city"></i> Cities</span>
-        <span class="stats-pill" id="stat-days"><i class="fa-solid fa-calendar-days"></i> Days</span>
+        <span class="stats-pill" id="stat-country"><i class="fa-solid fa-earth-americas"></i> Country</span>
+        <span class="stats-pill" id="stat-city"><i class="fa-solid fa-city"></i> City</span>
+        <span class="stats-pill" id="stat-days"><i class="fa-solid fa-calendar-days"></i> Duration</span>
       </div>
 
       <!-- Controls Group -->
@@ -127,13 +127,13 @@
   <!-- Hero Landing Section -->
   <section class="hero" id="hero-section" style="background-image: url('assets/images/hero_bg.webp');">
     <div class="hero-content">
-      <div class="hero-tagline" id="hero-tagline-text">Solo Travel Diaries</div>
-      <h1 id="hero-title-text">European Journal</h1>
-      <p class="lead" id="hero-lead-text">A solo travelogue documenting historic cities, high mountain peaks, and cultural landmarks.</p>
+      <div class="hero-tagline" id="hero-tagline-text">Every place leaves a page.</div>
+      <h1 id="hero-title-text">Wander Pages</h1>
+      <p class="lead" id="hero-lead-text">A personal travel diary filled with places, people, photographs and moments collected along the way.</p>
     </div>
     
     <a href="#main-content-anchor" class="scroll-indicator">
-      <span>Explore Journal</span>
+      <span>Explore My Journeys</span>
       <i class="fa-solid fa-chevron-down"></i>
     </a>
   </section>
@@ -143,8 +143,16 @@
 
   <!-- Country Selection Grid (Main Landing Content) -->
   <section class="container country-selection-view" id="country-selection-view">
-    <h2 class="section-title"><i class="fa-solid fa-earth-europe"></i> Choose a Country</h2>
+    <h2 class="section-title"><i class="fa-solid fa-earth-americas"></i> Explore Countries</h2>
     <div class="country-grid" id="country-grid">
+      <!-- Loaded dynamically via app.js -->
+    </div>
+  </section>
+
+  <!-- City Selection Grid (Visible when a country is selected, Hidden by default) -->
+  <section class="container city-selection-view" id="city-selection-view" style="display: none;">
+    <h2 class="section-title"><i class="fa-solid fa-map"></i> Explore Cities</h2>
+    <div class="city-grid" id="city-grid">
       <!-- Loaded dynamically via app.js -->
     </div>
   </section>
@@ -188,9 +196,9 @@
   <footer>
     <div class="container">
       <div class="footer-logo">
-        <i class="fa-solid fa-compass"></i> Euro<span>Journal</span>
+        <i class="fa-solid fa-compass"></i> Wander<span>Pages</span>
       </div>
-      <p>&copy; 2026. Made with passion for travel.</p>
+      <p>&copy; 2026 Wander Pages. Stories collected along the way.</p>
     </div>
   </footer>
 

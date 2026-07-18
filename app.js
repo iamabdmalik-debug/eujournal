@@ -20,6 +20,8 @@ document.addEventListener('DOMContentLoaded', () => {
   // --- Multi-Country DOM Elements ---
   const countrySelectionView = document.getElementById('country-selection-view');
   const countryGrid = document.getElementById('country-grid');
+  const citySelectionView = document.getElementById('city-selection-view');
+  const cityGrid = document.getElementById('city-grid');
   const journalSection = document.getElementById('journal-section');
   const backToCountriesBtn = document.getElementById('back-to-countries-btn');
   const headerLogoHome = document.getElementById('header-logo-home');
@@ -51,6 +53,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // --- State Variables ---
   let activeCountryId = null; // Starts null to show country selection screen
+  let activeCityId = null;
   let activeChapterId = null;
   let currentGallery = [];
   let currentImageIndex = 0;
@@ -83,7 +86,7 @@ document.addEventListener('DOMContentLoaded', () => {
     setupSupabase();
     renderCountryGrid();
     setupEventListeners();
-    updateViewVisibility();
+    handleRouting(); // Process URL routing on load
   }
 
   // --- Theme Logic ---
@@ -178,6 +181,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!currentUser && !isLoginSkipped) {
       // Unauthenticated and not skipped: show country selector in background, show auth overlay
       countrySelectionView.style.display = 'block';
+      citySelectionView.style.display = 'none';
       journalSection.style.display = 'none';
       backToCountriesBtn.style.display = 'none';
       statsPillGroup.style.display = 'none';
@@ -189,21 +193,42 @@ document.addEventListener('DOMContentLoaded', () => {
       // Home / Country Selection Screen
       countrySelectionView.style.display = 'block';
       countrySelectionView.classList.add('fade-in');
+      citySelectionView.style.display = 'none';
       journalSection.style.display = 'none';
       backToCountriesBtn.style.display = 'none';
       statsPillGroup.style.display = 'none';
       
       // Reset Hero to default
       heroSection.style.backgroundImage = "url('assets/images/hero_bg.webp')";
-      heroTitleText.textContent = "European Journal";
-      heroTaglineText.textContent = "Solo Travel Diaries";
+      heroTitleText.textContent = "Wander Pages";
+      heroTaglineText.textContent = "Every place leaves a page.";
       heroLeadText.textContent = TRAVEL_DATA.tagline;
-    } else {
-      // Active Country Chapters View
+    } else if (activeCityId === null) {
+      // City Selection Screen inside a Country
       countrySelectionView.style.display = 'none';
+      citySelectionView.style.display = 'block';
+      citySelectionView.classList.add('fade-in');
+      journalSection.style.display = 'none';
+      backToCountriesBtn.style.display = 'flex';
+      backToCountriesBtn.innerHTML = `<i class="fa-solid fa-arrow-left"></i> Countries`;
+      statsPillGroup.style.display = 'none';
+
+      // Update Hero to match country cover image
+      const country = TRAVEL_DATA.countries.find(c => c.id === activeCountryId);
+      if (country && country.coverImage) {
+        heroSection.style.backgroundImage = `url('${getWebpUrl(country.coverImage)}')`;
+        heroTitleText.textContent = country.name;
+        heroTaglineText.textContent = `${country.flag} Explore My Travels`;
+        heroLeadText.textContent = country.tagline;
+      }
+    } else {
+      // Active City Chapters View
+      countrySelectionView.style.display = 'none';
+      citySelectionView.style.display = 'none';
       journalSection.style.display = 'grid';
       journalSection.classList.add('fade-in');
       backToCountriesBtn.style.display = 'flex';
+      backToCountriesBtn.innerHTML = `<i class="fa-solid fa-arrow-left"></i> Cities`;
       statsPillGroup.style.display = 'flex';
     }
   }
@@ -224,7 +249,7 @@ document.addEventListener('DOMContentLoaded', () => {
             <div class="country-card-flag">${country.flag}</div>
             <h3 class="country-card-name">${country.name}</h3>
             <p class="country-card-tagline">${country.tagline}</p>
-            <button class="country-card-btn">Explore Journal <i class="fa-solid fa-arrow-right"></i></button>
+            <button class="country-card-btn">Explore Travels <i class="fa-solid fa-arrow-right"></i></button>
           </div>
         </div>
       `;
@@ -233,21 +258,54 @@ document.addEventListener('DOMContentLoaded', () => {
     countryGrid.innerHTML = cardsHTML;
   }
 
+  // --- Render City Selection Grid ---
+  function renderCityGrid() {
+    cityGrid.innerHTML = '';
+    const country = TRAVEL_DATA.countries.find(c => c.id === activeCountryId);
+    if (!country) return;
+
+    const citiesHTML = country.cities.map(city => {
+      const thumbUrl = getThumbnailUrl(city.heroImage);
+      const bgStyle = thumbUrl
+        ? `background-image: url('${thumbUrl}');`
+        : `background: linear-gradient(135deg, hsl(220, 25%, 18%), hsl(220, 20%, 10%));`;
+
+      return `
+        <div class="city-card" data-id="${city.id}">
+          <div class="city-card-bg" style="${bgStyle}"></div>
+          <div class="city-card-overlay"></div>
+          <div class="city-card-content">
+            <h3 class="city-card-name">${city.name}</h3>
+            <p class="city-card-tagline">${city.travelDate} • ${city.duration}</p>
+            <button class="city-card-btn">Explore Travels <i class="fa-solid fa-arrow-right"></i></button>
+          </div>
+        </div>
+      `;
+    }).join('');
+
+    cityGrid.innerHTML = citiesHTML;
+  }
+
   // --- Select Country and Trigger Transition ---
-  function selectCountry(countryId) {
+  function selectCountry(countryId, updateHash = true) {
     const country = TRAVEL_DATA.countries.find(c => c.id === countryId);
     if (!country) return;
 
     activeCountryId = countryId;
+    activeCityId = null;
+
+    renderCityGrid();
+
+    if (updateHash) {
+      window.location.hash = `/countries/${countryId}`;
+    }
 
     // Apply fade out animation to Country selection
     countrySelectionView.classList.add('fade-out');
     
     setTimeout(() => {
-      // Remove animation classes
       countrySelectionView.classList.remove('fade-out');
       
-      // Update Hero to match country (use CSS gradient if no image set)
       if (country.coverImage) {
         heroSection.style.backgroundImage = `url('${getWebpUrl(country.coverImage)}')`;
       } else {
@@ -255,38 +313,81 @@ document.addEventListener('DOMContentLoaded', () => {
         heroSection.style.background = 'linear-gradient(135deg, hsl(220, 30%, 12%), hsl(240, 25%, 8%))';
       }
       heroTitleText.textContent = country.name;
-      heroTaglineText.textContent = `${country.flag} Travelogues`;
+      heroTaglineText.textContent = `${country.flag} My Journeys`;
       heroLeadText.textContent = country.tagline;
-
-      // Update Header Stats
-      statCountry.innerHTML = `<i class="fa-solid fa-earth-europe"></i> ${country.name}`;
-      statCity.innerHTML = `<i class="fa-solid fa-city"></i> ${country.stats.city}`;
-      statDays.innerHTML = `<i class="fa-solid fa-calendar-days"></i> ${country.stats.days} Days`;
-
-      // Render chapters sidebar and load first chapter
-      renderSidebar();
-      activeChapterId = country.chapters[0].id;
-      loadChapter(activeChapterId, false);
 
       updateViewVisibility();
       
       // Smooth scroll down to main content
       document.getElementById('main-content-anchor').scrollIntoView({ behavior: 'smooth' });
-    }, 300);
+    }, 200);
   }
 
-  function showCountrySelection() {
-    journalSection.classList.add('fade-out');
+  // --- Select City and Trigger Transition ---
+  function selectCity(cityId, updateHash = true) {
+    const country = TRAVEL_DATA.countries.find(c => c.id === activeCountryId);
+    if (!country) return;
+
+    const city = country.cities.find(c => c.id === cityId);
+    if (!city) return;
+
+    activeCityId = cityId;
+
+    if (updateHash) {
+      window.location.hash = `/countries/${activeCountryId}/${cityId}`;
+    }
+
+    // Set first chapter active
+    if (city.chapters && city.chapters.length > 0) {
+      activeChapterId = city.chapters[0].id;
+    } else {
+      activeChapterId = null;
+    }
+
+    citySelectionView.classList.add('fade-out');
     
     setTimeout(() => {
-      journalSection.classList.remove('fade-out');
-      activeCountryId = null;
-      activeChapterId = null;
+      citySelectionView.classList.remove('fade-out');
+
+      // Update Hero to match city
+      if (city.heroImage) {
+        heroSection.style.backgroundImage = `url('${getWebpUrl(city.heroImage)}')`;
+      } else {
+        heroSection.style.backgroundImage = 'none';
+        heroSection.style.background = 'linear-gradient(135deg, hsl(220, 30%, 12%), hsl(240, 25%, 8%))';
+      }
+      heroTitleText.textContent = city.name;
+      heroTaglineText.textContent = `${country.flag} ${city.name} Travelogue`;
+      heroLeadText.textContent = city.introduction;
+
+      // Update Header Stats
+      statCountry.innerHTML = `<i class="fa-solid fa-earth-americas"></i> ${country.name}`;
+      statCity.innerHTML = `<i class="fa-solid fa-city"></i> ${city.name}`;
+      statDays.innerHTML = `<i class="fa-solid fa-calendar-days"></i> ${city.duration}`;
+
+      renderSidebar();
+      if (activeChapterId) {
+        loadChapter(activeChapterId, false);
+      }
+
       updateViewVisibility();
       
-      // Scroll back up to hero smoothly
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-    }, 300);
+      // Smooth scroll down to main content
+      document.getElementById('main-content-anchor').scrollIntoView({ behavior: 'smooth' });
+    }, 200);
+  }
+
+  function showCountrySelection(updateHash = true) {
+    activeCountryId = null;
+    activeCityId = null;
+    activeChapterId = null;
+
+    if (updateHash) {
+      window.location.hash = '/';
+    }
+
+    updateViewVisibility();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
   // --- Auth Form Submissions ---
@@ -328,13 +429,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
       if (error) throw error;
 
-      if (data.user) {
+      if (data && data.user) {
+        // Auto-subscribe user to updates
         const { error: profileError } = await supabase
           .from('profiles')
-          .insert({
-            id: data.user.id,
-            email: data.user.email,
-            subscribed_to_updates: true
+          .insert({ 
+            id: data.user.id, 
+            email: data.user.email, 
+            subscribed_to_updates: true 
           });
 
         if (profileError) {
@@ -359,21 +461,23 @@ document.addEventListener('DOMContentLoaded', () => {
       if (error) throw error;
       isLoginSkipped = false;
       activeCountryId = null;
+      activeCityId = null;
       activeChapterId = null;
     } catch (err) {
       console.error("Sign out failure:", err.message);
     }
   }
 
-  // --- Render Sidebar based on active country ---
+  // --- Render Sidebar based on active city ---
   function renderSidebar() {
     const country = TRAVEL_DATA.countries.find(c => c.id === activeCountryId);
-    if (!country) {
+    const city = country ? country.cities.find(c => c.id === activeCityId) : null;
+    if (!city) {
       chapterList.innerHTML = '';
       return;
     }
 
-    const itemsHTML = country.chapters.map((chapter) => {
+    const itemsHTML = city.chapters.map((chapter) => {
       let iconHTML = '<i class="fa-solid fa-circle"></i>';
       if (chapter.id.includes('un')) iconHTML = '<i class="fa-solid fa-building-ngo"></i>';
       else if (chapter.id.includes('jet')) iconHTML = '<i class="fa-solid fa-water"></i>';
@@ -426,9 +530,10 @@ document.addEventListener('DOMContentLoaded', () => {
   // --- Load and Render Chapter Content ---
   function loadChapter(chapterId, scrollToContent = false) {
     const country = TRAVEL_DATA.countries.find(c => c.id === activeCountryId);
-    if (!country) return;
+    const city = country ? country.cities.find(c => c.id === activeCityId) : null;
+    if (!city) return;
 
-    const chapter = country.chapters.find(c => c.id === chapterId);
+    const chapter = city.chapters.find(c => c.id === chapterId);
     if (!chapter) return;
 
     currentGallery = chapter.gallery || [];
@@ -437,7 +542,6 @@ document.addEventListener('DOMContentLoaded', () => {
     if (currentGallery.length > 0) {
       const galleryItems = currentGallery.map((img, index) => {
         if (img.url) {
-          // Real image
           return `
             <div class="gallery-card" data-index="${index}">
               <img src="${getThumbnailUrl(img.url)}" alt="${img.caption}" loading="lazy">
@@ -447,7 +551,6 @@ document.addEventListener('DOMContentLoaded', () => {
             </div>
           `;
         } else {
-          // Placeholder tile (no image yet)
           return `
             <div class="gallery-card placeholder">
               <i class="fa-regular fa-image placeholder-icon"></i>
@@ -463,21 +566,133 @@ document.addEventListener('DOMContentLoaded', () => {
       `;
     }
 
+    // Dynamic headers (Hero Photo & Intro) - render only if available
+    let cityHeaderHTML = '';
+    if (city.heroImage || city.introduction) {
+      const heroPhotoHTML = city.heroImage ? `
+        <div class="city-header-hero">
+          <img src="${getWebpUrl(city.heroImage)}" alt="${city.name} Hero Photo" loading="eager">
+        </div>
+      ` : '';
+      
+      const introHTML = city.introduction ? `
+        <div class="city-intro-section">
+          ${city.introduction}
+        </div>
+      ` : '';
+      
+      cityHeaderHTML = `
+        <div class="city-header-details">
+          ${heroPhotoHTML}
+          ${introHTML}
+        </div>
+      `;
+    }
+
+    // Reflective details at bottom
+    let reflectionsHTML = '';
+    let memoryHTML = '';
+    if (city.favoriteMemory) {
+      memoryHTML = `
+        <div class="reflection-card favorite-memory">
+          <h4><i class="fa-solid fa-star"></i> Favourite Memory</h4>
+          <p>${city.favoriteMemory}</p>
+        </div>
+      `;
+    }
+    
+    let experiencesHTML = '';
+    if (city.experiences && city.experiences.length > 0) {
+      const tags = city.experiences.map(exp => `<span class="experience-tag">${exp}</span>`).join('');
+      experiencesHTML = `
+        <div class="reflection-card">
+          <h4><i class="fa-solid fa-compass"></i> Places & Food Experienced</h4>
+          <div class="experience-tags">${tags}</div>
+        </div>
+      `;
+    }
+    
+    let lessonsHTML = '';
+    if (city.lessons) {
+      lessonsHTML = `
+        <div class="reflection-card lessons-learned">
+          <h4><i class="fa-solid fa-lightbulb"></i> What this journey taught me</h4>
+          <p>${city.lessons}</p>
+        </div>
+      `;
+    }
+    
+    // Previous & Next City Navigation
+    let navHTML = '';
+    const cityIndex = country.cities.findIndex(c => c.id === city.id);
+    const prevCity = cityIndex > 0 ? country.cities[cityIndex - 1] : null;
+    const nextCity = cityIndex < country.cities.length - 1 ? country.cities[cityIndex + 1] : null;
+    
+    let prevLink = prevCity ? `<a href="#/countries/${activeCountryId}/${prevCity.id}" class="city-nav-link"><i class="fa-solid fa-arrow-left-long"></i> Previous City: ${prevCity.name}</a>` : '<div></div>';
+    let nextLink = nextCity ? `<a href="#/countries/${activeCountryId}/${nextCity.id}" class="city-nav-link">Next City: ${nextCity.name} <i class="fa-solid fa-arrow-right-long"></i></a>` : '<div></div>';
+    
+    if (prevCity || nextCity) {
+      navHTML = `
+        <div class="city-navigation-footer">
+          ${prevLink}
+          ${nextLink}
+        </div>
+      `;
+    }
+    
+    reflectionsHTML = `
+      <div class="city-reflections-container">
+        ${memoryHTML}
+        ${experiencesHTML}
+        ${lessonsHTML}
+        ${navHTML}
+        <div class="city-action-buttons">
+          <button class="btn-secondary-outline" id="btn-back-country"><i class="fa-solid fa-map-location-dot"></i> Back to ${country.name} Cities</button>
+          <button class="btn-secondary-outline" id="btn-back-countries"><i class="fa-solid fa-earth-americas"></i> Back to All Countries</button>
+        </div>
+      </div>
+    `;
+
     const htmlContent = `
       <div class="chapter-content" style="opacity: 0; transform: translateY(15px); transition: opacity 0.4s var(--transition-bezier), transform 0.4s var(--transition-bezier);">
-        <div class="chapter-header">
+        ${cityHeaderHTML}
+        
+        <div class="chapter-header" style="margin-top: 30px; border-top: 1px solid var(--border-color); padding-top: 24px;">
           <span class="chapter-date-badge"><i class="fa-regular fa-clock"></i> ${chapter.date}</span>
           <h2 class="chapter-title-main">${chapter.title}</h2>
           <div class="chapter-subtitle-main">${chapter.subtitle}</div>
         </div>
+        
         <div class="chapter-body">
           <p class="journal-text">${chapter.journal}</p>
         </div>
+        
         ${galleryHTML}
+        
+        ${reflectionsHTML}
       </div>
     `;
 
     contentContainer.innerHTML = htmlContent;
+
+    // Bind listeners for dynamic action buttons
+    const btnBackCountry = contentContainer.querySelector('#btn-back-country');
+    const btnBackCountries = contentContainer.querySelector('#btn-back-countries');
+    
+    if (btnBackCountry) {
+      btnBackCountry.addEventListener('click', () => {
+        activeCityId = null;
+        activeChapterId = null;
+        window.location.hash = `/countries/${activeCountryId}`;
+        updateViewVisibility();
+      });
+    }
+    
+    if (btnBackCountries) {
+      btnBackCountries.addEventListener('click', () => {
+        showCountrySelection(true);
+      });
+    }
 
     setTimeout(() => {
       const newContent = contentContainer.querySelector('.chapter-content');
@@ -487,7 +702,7 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     }, 50);
 
-    const cards = contentContainer.querySelectorAll('.gallery-card');
+    const cards = contentContainer.querySelectorAll('.gallery-card:not(.placeholder)');
     cards.forEach(card => {
       card.addEventListener('click', () => {
         const index = parseInt(card.dataset.index);
@@ -506,7 +721,6 @@ document.addEventListener('DOMContentLoaded', () => {
     currentImageIndex = index;
     updateLightboxImage();
     
-    // Prevent layout jump when hiding scrollbar
     const scrollbarWidth = window.innerWidth - document.documentElement.clientWidth;
     if (scrollbarWidth > 0) {
       document.body.style.paddingRight = `${scrollbarWidth}px`;
@@ -548,19 +762,111 @@ document.addEventListener('DOMContentLoaded', () => {
     };
   }
 
+  // --- Client-Side Routing ---
+  function handleRouting() {
+    let path = window.location.hash.replace(/^#/, '');
+    
+    if (!path && window.location.pathname !== '/' && window.location.pathname !== '/index.html') {
+      path = window.location.pathname;
+    }
+
+    if (!path || path === '/' || path === '/index.html') {
+      showCountrySelection(false);
+      return;
+    }
+
+    const parts = path.split('/').filter(Boolean); // e.g. ["countries", "switzerland", "geneva"]
+    
+    if (parts[0] === 'countries') {
+      const countryId = parts[1];
+      const cityId = parts[2];
+      
+      if (countryId) {
+        const country = TRAVEL_DATA.countries.find(c => c.id === countryId);
+        if (country) {
+          activeCountryId = countryId;
+          renderCityGrid();
+          
+          if (cityId) {
+            const city = country.cities.find(c => c.id === cityId);
+            if (city) {
+              activeCityId = cityId;
+              
+              if (city.chapters && city.chapters.length > 0) {
+                activeChapterId = city.chapters[0].id;
+              } else {
+                activeChapterId = null;
+              }
+              
+              // Load Hero elements
+              if (city.heroImage) {
+                heroSection.style.backgroundImage = `url('${getWebpUrl(city.heroImage)}')`;
+              }
+              heroTitleText.textContent = city.name;
+              heroTaglineText.textContent = `${country.flag} ${city.name} Travelogue`;
+              heroLeadText.textContent = city.introduction;
+
+              // Stats
+              statCountry.innerHTML = `<i class="fa-solid fa-earth-americas"></i> ${country.name}`;
+              statCity.innerHTML = `<i class="fa-solid fa-city"></i> ${city.name}`;
+              statDays.innerHTML = `<i class="fa-solid fa-calendar-days"></i> ${city.duration}`;
+
+              renderSidebar();
+              if (activeChapterId) {
+                loadChapter(activeChapterId, false);
+              }
+            } else {
+              activeCityId = null;
+            }
+          } else {
+            activeCityId = null;
+            
+            // Hero details for Country Selection
+            if (country.coverImage) {
+              heroSection.style.backgroundImage = `url('${getWebpUrl(country.coverImage)}')`;
+            }
+            heroTitleText.textContent = country.name;
+            heroTaglineText.textContent = `${country.flag} Explore My Travels`;
+            heroLeadText.textContent = country.tagline;
+          }
+          updateViewVisibility();
+        } else {
+          showCountrySelection(false);
+        }
+      } else {
+        showCountrySelection(false);
+      }
+    } else {
+      showCountrySelection(false);
+    }
+  }
+
   // --- Listeners Setup ---
   function setupEventListeners() {
     // Theme Switcher
     themeToggle.addEventListener('click', toggleTheme);
 
-    // Back to Countries Button
-    backToCountriesBtn.addEventListener('click', showCountrySelection);
-    headerLogoHome.addEventListener('click', (e) => {
-      e.preventDefault();
-      if (activeCountryId !== null) {
-        showCountrySelection();
+    // Back to Countries/Cities Button
+    backToCountriesBtn.addEventListener('click', () => {
+      if (activeCityId !== null) {
+        activeCityId = null;
+        activeChapterId = null;
+        window.location.hash = `/countries/${activeCountryId}`;
+        updateViewVisibility();
+      } else if (activeCountryId !== null) {
+        showCountrySelection(true);
       }
     });
+
+    headerLogoHome.addEventListener('click', (e) => {
+      e.preventDefault();
+      if (activeCountryId !== null || activeCityId !== null) {
+        showCountrySelection(true);
+      }
+    });
+
+    // Hashchange listener for SPA routing
+    window.addEventListener('hashchange', handleRouting);
 
     // Event delegation for sidebar chapters selection
     chapterList.addEventListener('click', (e) => {
@@ -578,6 +884,14 @@ document.addEventListener('DOMContentLoaded', () => {
       const card = e.target.closest('.country-card');
       if (card) {
         selectCountry(card.dataset.id);
+      }
+    });
+
+    // Event delegation for city card selection
+    cityGrid.addEventListener('click', (e) => {
+      const card = e.target.closest('.city-card');
+      if (card) {
+        selectCity(card.dataset.id);
       }
     });
 
