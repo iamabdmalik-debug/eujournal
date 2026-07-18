@@ -54,7 +54,9 @@ document.addEventListener('DOMContentLoaded', () => {
   let currentImageIndex = 0;
   let supabase = null;
   let currentUser = null;
-  let isLoginSkipped = false;
+  
+  // Persistence for sign-in prompt
+  let isLoginSkipped = localStorage.getItem('wanderPagesSignInPromptSeen') === 'true';
 
   // --- Helper functions for Image Optimization ---
   function getWebpUrl(url) {
@@ -105,6 +107,7 @@ document.addEventListener('DOMContentLoaded', () => {
     updateThemeIcon(savedTheme);
   }
 
+  // Toggle light/dark theme
   function toggleTheme() {
     const currentTheme = document.documentElement.getAttribute('data-theme');
     const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
@@ -164,6 +167,8 @@ document.addEventListener('DOMContentLoaded', () => {
         authOverlay.classList.add('hidden');
       } else {
         authOverlay.classList.remove('hidden');
+        // Prevent auto-showing prompt on next refreshes/pages once shown once
+        localStorage.setItem('wanderPagesSignInPromptSeen', 'true');
       }
     }
     if (userControls) userControls.style.display = 'none';
@@ -183,6 +188,7 @@ document.addEventListener('DOMContentLoaded', () => {
     authMessage.className = `auth-message ${type}`;
   }
 
+  // Clear authentication forms messages
   function clearAuthMessage() {
     if (!authMessage) return;
     authMessage.textContent = '';
@@ -250,7 +256,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
-  // --- Render City Selection Tabs ---
+  // --- Render City Selection Cards (France Layout) ---
   function renderCitySelectors() {
     if (!citySelectionView) return;
 
@@ -262,22 +268,48 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     citySelectionView.style.display = 'block';
+    
+    // Create large side-by-side selection cards
     citySelectionView.innerHTML = `
-      <div class="city-tabs" style="display: flex; gap: 16px; margin: 40px 0 20px; justify-content: center; flex-wrap: wrap;">
-        ${COUNTRY_DATA.cities.map(city => `
-          <button class="city-tab-btn ${city.id === activeCityId ? 'active' : ''}" data-id="${city.id}" style="padding: 12px 28px; border-radius: 100px; border: 1px solid var(--border-color); background: var(--bg-card); cursor: pointer; font-family: 'Inter', sans-serif; font-weight: 600; font-size: 0.95rem; color: var(--text-muted); transition: all 0.22s var(--transition-bezier);">
-            ${city.name}
-          </button>
-        `).join('')}
+      <div class="city-cards-container">
+        ${COUNTRY_DATA.cities.map(city => {
+          const thumbUrl = getThumbnailUrl(city.heroImage);
+          const desc = city.id === 'paris' 
+            ? "The city of light, art, fashion, and historic monumental walks." 
+            : "High-altitude wonderland of soaring peaks and the Mont Blanc massif.";
+          
+          return `
+            <div class="city-selection-card ${city.id === activeCityId ? 'active' : ''}" data-id="${city.id}" tabindex="0" aria-label="Explore travels in ${city.name}">
+              <div class="city-selection-card-bg" style="background-image: url('${thumbUrl}');"></div>
+              <div class="city-selection-card-overlay"></div>
+              <div class="city-selection-card-content">
+                <h3 class="city-selection-card-title">${city.name}</h3>
+                <p class="city-selection-card-desc">${desc}</p>
+                <button class="city-selection-card-btn" tabindex="-1">Explore Travels <i class="fa-solid fa-arrow-right"></i></button>
+              </div>
+            </div>
+          `;
+        }).join('')}
       </div>
     `;
 
-    const tabButtons = citySelectionView.querySelectorAll('.city-tab-btn');
-    tabButtons.forEach(btn => {
-      btn.addEventListener('click', () => {
-        tabButtons.forEach(b => b.classList.remove('active'));
-        btn.classList.add('active');
-        selectCity(btn.dataset.id);
+    const cards = citySelectionView.querySelectorAll('.city-selection-card');
+    cards.forEach(card => {
+      // Click selection
+      card.addEventListener('click', () => {
+        cards.forEach(c => c.classList.remove('active'));
+        card.classList.add('active');
+        selectCity(card.dataset.id);
+      });
+      
+      // Accessibility key support
+      card.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          cards.forEach(c => c.classList.remove('active'));
+          card.classList.add('active');
+          selectCity(card.dataset.id);
+        }
       });
     });
   }
@@ -293,6 +325,15 @@ document.addEventListener('DOMContentLoaded', () => {
       activeChapterId = city.chapters[0].id;
     } else {
       activeChapterId = null;
+    }
+
+    // Synchronize card selection highlight
+    if (citySelectionView) {
+      const cards = citySelectionView.querySelectorAll('.city-selection-card');
+      cards.forEach(c => {
+        if (c.dataset.id === cityId) c.classList.add('active');
+        else c.classList.remove('active');
+      });
     }
 
     // Update Hero to match city details
@@ -387,7 +428,8 @@ document.addEventListener('DOMContentLoaded', () => {
     try {
       const { error } = await supabase.auth.signOut();
       if (error) throw error;
-      isLoginSkipped = false;
+      // Keep true so it does not auto-open after logging out
+      isLoginSkipped = true;
       activeCityId = null;
       activeChapterId = null;
     } catch (err) {
@@ -458,213 +500,225 @@ document.addEventListener('DOMContentLoaded', () => {
   // --- Load and Render Chapter ---
   function loadChapter(chapterId, scrollToContent = false) {
     if (!contentContainer) return;
-    const city = COUNTRY_DATA.cities.find(c => c.id === activeCityId);
-    if (!city) return;
+    
+    // Render a lightweight loading spinner while parsing/switching chapters
+    contentContainer.innerHTML = `
+      <div class="chapter-content-loading" style="display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 60px; gap: 16px; color: var(--text-muted);">
+        <i class="fa-solid fa-spinner fa-spin" style="font-size: 2rem; color: var(--primary-color);"></i>
+        <p style="font-family: 'Inter', sans-serif; font-size: 0.95rem;">Loading travel details...</p>
+      </div>
+    `;
 
-    const chapter = city.chapters.find(c => c.id === chapterId);
-    if (!chapter) return;
+    try {
+      const city = COUNTRY_DATA.cities.find(c => c.id === activeCityId);
+      if (!city) throw new Error(`City with ID "${activeCityId}" not found in country data.`);
 
-    currentGallery = chapter.gallery || [];
+      const chapter = city.chapters.find(c => c.id === chapterId);
+      if (!chapter) throw new Error(`Chapter with ID "${chapterId}" not found in city "${city.name}".`);
 
-    let galleryHTML = '';
-    if (currentGallery.length > 0) {
-      const galleryItems = currentGallery.map((img, index) => {
-        if (img.url) {
-          return `
-            <div class="gallery-card" data-index="${index}">
-              <img src="${getThumbnailUrl(img.url)}" alt="${img.caption}" loading="lazy" decoding="async" width="400" height="300">
-              <div class="gallery-overlay">
-                <span class="gallery-caption">${img.caption}</span>
+      currentGallery = chapter.gallery || [];
+
+      let galleryHTML = '';
+      if (currentGallery.length > 0) {
+        const galleryItems = currentGallery.map((img, index) => {
+          if (img.url) {
+            return `
+              <div class="gallery-card" data-index="${index}">
+                <img src="${getThumbnailUrl(img.url)}" alt="${img.caption}" loading="lazy" decoding="async" width="400" height="300">
+                <div class="gallery-overlay">
+                  <span class="gallery-caption">${img.caption}</span>
+                </div>
               </div>
-            </div>
-          `;
-        } else {
-          return `
-            <div class="gallery-card placeholder">
-              <i class="fa-regular fa-image placeholder-icon"></i>
-              <span class="placeholder-caption">${img.caption}</span>
-            </div>
-          `;
-        }
-      }).join('');
+            `;
+          } else {
+            return `
+              <div class="gallery-card placeholder">
+                <i class="fa-regular fa-image placeholder-icon"></i>
+                <span class="placeholder-caption">${img.caption}</span>
+              </div>
+            `;
+          }
+        }).join('');
 
-      galleryHTML = `
-        <h3 class="gallery-section-title"><i class="fa-solid fa-images"></i> Pictures from the Spot</h3>
-        <div class="gallery-grid">${galleryItems}</div>
-      `;
-    }
-
-    // City headers (Hero banner and intro text)
-    let cityHeaderHTML = '';
-    if (city.heroImage || city.introduction) {
-      const heroPhotoHTML = city.heroImage ? `
-        <div class="city-header-hero">
-          <img src="${getWebpUrl(city.heroImage)}" alt="${city.name} Hero Photo" loading="eager" width="1200" height="280">
-        </div>
-      ` : '';
-      
-      const introHTML = city.introduction ? `
-        <div class="city-intro-section">
-          ${city.introduction}
-        </div>
-      ` : '';
-      
-      cityHeaderHTML = `
-        <div class="city-header-details">
-          ${heroPhotoHTML}
-          ${introHTML}
-        </div>
-      `;
-    }
-
-    // Reflection modules
-    let reflectionsHTML = '';
-    let memoryHTML = '';
-    if (city.favoriteMemory) {
-      memoryHTML = `
-        <div class="reflection-card favorite-memory">
-          <h4><i class="fa-solid fa-star"></i> Favourite Memory</h4>
-          <p>${city.favoriteMemory}</p>
-        </div>
-      `;
-    }
-    
-    let experiencesHTML = '';
-    if (city.experiences && city.experiences.length > 0) {
-      const tags = city.experiences.map(exp => `<span class="experience-tag">${exp}</span>`).join('');
-      experiencesHTML = `
-        <div class="reflection-card">
-          <h4><i class="fa-solid fa-compass"></i> Places & Food Experienced</h4>
-          <div class="experience-tags">${tags}</div>
-        </div>
-      `;
-    }
-    
-    let lessonsHTML = '';
-    if (city.lessons) {
-      lessonsHTML = `
-        <div class="reflection-card lessons-learned">
-          <h4><i class="fa-solid fa-lightbulb"></i> What this journey taught me</h4>
-          <p>${city.lessons}</p>
-        </div>
-      `;
-    }
-    
-    // Prev / Next City Nav inside country page
-    let navHTML = '';
-    const cityIndex = COUNTRY_DATA.cities.findIndex(c => c.id === city.id);
-    const prevCity = cityIndex > 0 ? COUNTRY_DATA.cities[cityIndex - 1] : null;
-    const nextCity = cityIndex < COUNTRY_DATA.cities.length - 1 ? COUNTRY_DATA.cities[cityIndex + 1] : null;
-    
-    let prevLink = prevCity ? `<button class="city-nav-link" data-id="${prevCity.id}" style="background:none;border:none;cursor:pointer;"><i class="fa-solid fa-arrow-left-long"></i> Previous City: ${prevCity.name}</button>` : '<div></div>';
-    let nextLink = nextCity ? `<button class="city-nav-link" data-id="${nextCity.id}" style="background:none;border:none;cursor:pointer;">Next City: ${nextCity.name} <i class="fa-solid fa-arrow-right-long"></i></button>` : '<div></div>';
-    
-    if (prevCity || nextCity) {
-      navHTML = `
-        <div class="city-navigation-footer">
-          ${prevLink}
-          ${nextLink}
-        </div>
-      `;
-    }
-    
-    reflectionsHTML = `
-      <div class="city-reflections-container">
-        ${memoryHTML}
-        ${experiencesHTML}
-        ${lessonsHTML}
-        ${navHTML}
-        <div class="city-action-buttons">
-          ${COUNTRY_DATA.cities.length > 1 ? `<button class="btn-secondary-outline" id="btn-back-cities-selector"><i class="fa-solid fa-map-location-dot"></i> Back to ${COUNTRY_DATA.name} Selectors</button>` : ''}
-          <a href="/" class="btn-secondary-outline" style="text-decoration:none;"><i class="fa-solid fa-earth-americas"></i> Back to All Countries</a>
-        </div>
-      </div>
-    `;
-
-    const htmlContent = `
-      <div class="chapter-content" style="opacity: 0; transform: translateY(15px); transition: opacity 0.4s var(--transition-bezier), transform 0.4s var(--transition-bezier);">
-        ${cityHeaderHTML}
-        
-        <div class="chapter-header" style="margin-top: 30px; border-top: 1px solid var(--border-color); padding-top: 24px;">
-          <span class="chapter-date-badge"><i class="fa-regular fa-clock"></i> ${chapter.date}</span>
-          <h2 class="chapter-title-main">${chapter.title}</h2>
-          <div class="chapter-subtitle-main">${chapter.subtitle}</div>
-        </div>
-        
-        <div class="chapter-body">
-          <p class="journal-text">${chapter.journal}</p>
-        </div>
-        
-        ${galleryHTML}
-        
-        ${reflectionsHTML}
-      </div>
-    `;
-
-    contentContainer.innerHTML = htmlContent;
-
-    // Bind click listeners for internal city nav
-    const cityNavLinks = contentContainer.querySelectorAll('.city-nav-link');
-    cityNavLinks.forEach(link => {
-      link.addEventListener('click', () => {
-        selectCity(link.dataset.id);
-        
-        // Sync active state in tabs if tabs container exists
-        if (citySelectionView) {
-          const tabButtons = citySelectionView.querySelectorAll('.city-tab-btn');
-          tabButtons.forEach(b => {
-            if (b.dataset.id === link.dataset.id) b.classList.add('active');
-            else b.classList.remove('active');
-          });
-        }
-      });
-    });
-
-    const btnBackSelector = contentContainer.querySelector('#btn-back-cities-selector');
-    if (btnBackSelector) {
-      btnBackSelector.addEventListener('click', () => {
-        activeCityId = null;
-        activeChapterId = null;
-        
-        // Reset tab buttons active classes
-        if (citySelectionView) {
-          const tabButtons = citySelectionView.querySelectorAll('.city-tab-btn');
-          tabButtons.forEach(b => b.classList.remove('active'));
-        }
-        
-        journalSection.style.display = 'none';
-        statsPillGroup.style.display = 'none';
-        citySelectionView.style.display = 'block';
-        citySelectionView.classList.add('fade-in');
-        
-        // Reset hero to country cover
-        if (COUNTRY_DATA.coverImage) {
-          heroSection.style.backgroundImage = `url('${getWebpUrl(COUNTRY_DATA.coverImage)}')`;
-        }
-        heroTitleText.textContent = COUNTRY_DATA.name;
-        heroTaglineText.textContent = `Stories collected along the way.`;
-        heroLeadText.textContent = COUNTRY_DATA.tagline;
-      });
-    }
-
-    setTimeout(() => {
-      const newContent = contentContainer.querySelector('.chapter-content');
-      if (newContent) {
-        newContent.style.opacity = '1';
-        newContent.style.transform = 'translateY(0)';
+        galleryHTML = `
+          <h3 class="gallery-section-title"><i class="fa-solid fa-images"></i> Pictures from the Spot</h3>
+          <div class="gallery-grid">${galleryItems}</div>
+        `;
       }
-    }, 50);
 
-    const cards = contentContainer.querySelectorAll('.gallery-card:not(.placeholder)');
-    cards.forEach(card => {
-      card.addEventListener('click', () => {
-        const index = parseInt(card.dataset.index);
-        openLightbox(index);
+      // City headers (Hero banner and intro text)
+      let cityHeaderHTML = '';
+      if (city.heroImage || city.introduction) {
+        const heroPhotoHTML = city.heroImage ? `
+          <div class="city-header-hero">
+            <img src="${getWebpUrl(city.heroImage)}" alt="${city.name} Hero Photo" loading="eager" width="1200" height="280">
+          </div>
+        ` : '';
+        
+        const introHTML = city.introduction ? `
+          <div class="city-intro-section">
+            ${city.introduction}
+          </div>
+        ` : '';
+        
+        cityHeaderHTML = `
+          <div class="city-header-details">
+            ${heroPhotoHTML}
+            ${introHTML}
+          </div>
+        `;
+      }
+
+      // Reflection modules
+      let reflectionsHTML = '';
+      let memoryHTML = '';
+      if (city.favoriteMemory) {
+        memoryHTML = `
+          <div class="reflection-card favorite-memory">
+            <h4><i class="fa-solid fa-star"></i> Favourite Memory</h4>
+            <p>${city.favoriteMemory}</p>
+          </div>
+        `;
+      }
+      
+      let experiencesHTML = '';
+      if (city.experiences && city.experiences.length > 0) {
+        const tags = city.experiences.map(exp => `<span class="experience-tag">${exp}</span>`).join('');
+        experiencesHTML = `
+          <div class="reflection-card">
+            <h4><i class="fa-solid fa-compass"></i> Places & Food Experienced</h4>
+            <div class="experience-tags">${tags}</div>
+          </div>
+        `;
+      }
+      
+      let lessonsHTML = '';
+      if (city.lessons) {
+        lessonsHTML = `
+          <div class="reflection-card lessons-learned">
+            <h4><i class="fa-solid fa-lightbulb"></i> What this journey taught me</h4>
+            <p>${city.lessons}</p>
+          </div>
+        `;
+      }
+      
+      // Prev / Next City Nav inside country page
+      let navHTML = '';
+      const cityIndex = COUNTRY_DATA.cities.findIndex(c => c.id === city.id);
+      const prevCity = cityIndex > 0 ? COUNTRY_DATA.cities[cityIndex - 1] : null;
+      const nextCity = cityIndex < COUNTRY_DATA.cities.length - 1 ? COUNTRY_DATA.cities[cityIndex + 1] : null;
+      
+      let prevLink = prevCity ? `<button class="city-nav-link" data-id="${prevCity.id}" style="background:none;border:none;cursor:pointer;"><i class="fa-solid fa-arrow-left-long"></i> Previous City: ${prevCity.name}</button>` : '<div></div>';
+      let nextLink = nextCity ? `<button class="city-nav-link" data-id="${nextCity.id}" style="background:none;border:none;cursor:pointer;">Next City: ${nextCity.name} <i class="fa-solid fa-arrow-right-long"></i></button>` : '<div></div>';
+      
+      if (prevCity || nextCity) {
+        navHTML = `
+          <div class="city-navigation-footer">
+            ${prevLink}
+            ${nextLink}
+          </div>
+        `;
+      }
+      
+      reflectionsHTML = `
+        <div class="city-reflections-container">
+          ${memoryHTML}
+          ${experiencesHTML}
+          ${lessonsHTML}
+          ${navHTML}
+          <div class="city-action-buttons">
+            ${COUNTRY_DATA.cities.length > 1 ? `<button class="btn-secondary-outline" id="btn-back-cities-selector"><i class="fa-solid fa-map-location-dot"></i> Back to France Selectors</button>` : ''}
+            <a href="/" class="btn-secondary-outline" style="text-decoration:none;"><i class="fa-solid fa-earth-americas"></i> Back to All Countries</a>
+          </div>
+        </div>
+      `;
+
+      const htmlContent = `
+        <div class="chapter-content" style="opacity: 0; transform: translateY(15px); transition: opacity 0.4s var(--transition-bezier), transform 0.4s var(--transition-bezier);">
+          ${cityHeaderHTML}
+          
+          <div class="chapter-header" style="margin-top: 30px; border-top: 1px solid var(--border-color); padding-top: 24px;">
+            <span class="chapter-date-badge"><i class="fa-regular fa-clock"></i> ${chapter.date}</span>
+            <h2 class="chapter-title-main">${chapter.title}</h2>
+            <div class="chapter-subtitle-main">${chapter.subtitle}</div>
+          </div>
+          
+          <div class="chapter-body">
+            <p class="journal-text">${chapter.journal}</p>
+          </div>
+          
+          ${galleryHTML}
+          
+          ${reflectionsHTML}
+        </div>
+      `;
+
+      contentContainer.innerHTML = htmlContent;
+
+      // Bind click listeners for internal city nav
+      const cityNavLinks = contentContainer.querySelectorAll('.city-nav-link');
+      cityNavLinks.forEach(link => {
+        link.addEventListener('click', () => {
+          selectCity(link.dataset.id);
+        });
       });
-    });
 
-    if (scrollToContent && window.innerWidth <= 1024) {
-      contentContainer.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      const btnBackSelector = contentContainer.querySelector('#btn-back-cities-selector');
+      if (btnBackSelector) {
+        btnBackSelector.addEventListener('click', () => {
+          activeCityId = null;
+          activeChapterId = null;
+          
+          // Reset selector cards active classes
+          if (citySelectionView) {
+            const cards = citySelectionView.querySelectorAll('.city-selection-card');
+            cards.forEach(c => c.classList.remove('active'));
+          }
+          
+          journalSection.style.display = 'none';
+          statsPillGroup.style.display = 'none';
+          citySelectionView.style.display = 'block';
+          citySelectionView.classList.add('fade-in');
+          
+          // Reset hero to country cover
+          if (COUNTRY_DATA.coverImage) {
+            heroSection.style.backgroundImage = `url('${getWebpUrl(COUNTRY_DATA.coverImage)}')`;
+          }
+          heroTitleText.textContent = COUNTRY_DATA.name;
+          heroTaglineText.textContent = `Stories collected along the way.`;
+          heroLeadText.textContent = COUNTRY_DATA.tagline;
+        });
+      }
+
+      setTimeout(() => {
+        const newContent = contentContainer.querySelector('.chapter-content');
+        if (newContent) {
+          newContent.style.opacity = '1';
+          newContent.style.transform = 'translateY(0)';
+        }
+      }, 50);
+
+      const cards = contentContainer.querySelectorAll('.gallery-card:not(.placeholder)');
+      cards.forEach(card => {
+        card.addEventListener('click', () => {
+          const index = parseInt(card.dataset.index);
+          openLightbox(index);
+        });
+      });
+
+      if (scrollToContent && window.innerWidth <= 1024) {
+        contentContainer.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    } catch (err) {
+      console.error("Error loading travel chapter:", err);
+      contentContainer.innerHTML = `
+        <div class="chapter-content-error" style="text-align: center; padding: 50px 30px; color: var(--text-main);">
+          <i class="fa-solid fa-circle-exclamation" style="font-size: 3rem; color: var(--primary-color); margin-bottom: 16px;"></i>
+          <h3 style="font-family: 'Playfair Display', serif; font-size: 1.5rem; margin-bottom: 8px;">Failed to Load Page</h3>
+          <p style="font-family: 'Inter', sans-serif; font-size: 0.95rem; color: var(--text-muted); margin-bottom: 20px;">This travel chapter could not be loaded. Please try again.</p>
+          <button onclick="window.location.reload()" class="btn-secondary-outline" style="margin: 0 auto;">Retry Load</button>
+        </div>
+      `;
     }
   }
 
@@ -738,6 +792,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (authCloseBtn) {
       authCloseBtn.addEventListener('click', () => {
         isLoginSkipped = true;
+        localStorage.setItem('wanderPagesSignInPromptSeen', 'true');
         if (authOverlay) authOverlay.classList.add('hidden');
         updateViewVisibility();
       });
