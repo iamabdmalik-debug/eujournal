@@ -1563,6 +1563,31 @@ footer {
   border-color: var(--text-muted);
 }
 
+/* Tab Selector Styles for City Navigation */
+.city-tab-btn.active {
+  background: var(--primary-color) !important;
+  color: #fff !important;
+  border-color: var(--primary-color) !important;
+  box-shadow: 0 8px 24px var(--accent-glow);
+  transform: translateY(-2px);
+}
+
+.city-tab-btn:hover:not(.active) {
+  background: var(--bg-card-hover) !important;
+  border-color: var(--text-muted) !important;
+}
+
+/* Keyboard A11y Focus Outlines */
+.country-card:focus-visible {
+  outline: 3px solid var(--primary-color);
+  outline-offset: 4px;
+}
+
+.city-card:focus-visible {
+  outline: 3px solid var(--primary-color);
+  outline-offset: 4px;
+}
+
 /* Prefers Reduced Motion overrides */
 @media (prefers-reduced-motion: reduce) {
   * {

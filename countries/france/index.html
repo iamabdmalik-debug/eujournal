@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Wander Pages - Stories collected along the way</title>
+  <title>France Journeys - Wander Pages</title>
   <meta name="description" content="Wander Pages is a personal travel diary sharing photographs, memories and stories collected along the way.">
   
   <!-- Font & CDN Optimizations -->
@@ -85,7 +85,7 @@
   <!-- Navigation Header -->
   <header id="main-header">
     <div class="container nav-container">
-      <a href="#" class="logo" id="header-logo-home">
+      <a href="/" class="logo" id="header-logo-home">
         <i class="fa-solid fa-compass"></i> Wander<span>Pages</span>
       </a>
       
@@ -99,9 +99,9 @@
       <!-- Controls Group -->
       <div class="header-controls">
         <!-- Back to Countries Link -->
-        <button class="back-btn-header" id="back-to-countries-btn" style="display: none;">
+        <a href="/" class="back-btn-header" id="back-to-countries-btn">
           <i class="fa-solid fa-arrow-left"></i> Countries
-        </button>
+        </a>
 
         <!-- User profile controls (loaded dynamically) -->
         <div class="user-profile-controls" id="user-controls" style="display: none;">
@@ -125,11 +125,11 @@
   </header>
 
   <!-- Hero Landing Section -->
-  <section class="hero" id="hero-section" style="background-image: url('assets/images/hero_bg.webp');">
+  <section class="hero" id="hero-section">
     <div class="hero-content">
-      <div class="hero-tagline" id="hero-tagline-text">Every place leaves a page.</div>
-      <h1 id="hero-title-text">Wander Pages</h1>
-      <p class="lead" id="hero-lead-text">A personal travel diary filled with places, people, photographs and moments collected along the way.</p>
+      <div class="hero-tagline" id="hero-tagline-text">Explore My Travels</div>
+      <h1 id="hero-title-text">France</h1>
+      <p class="lead" id="hero-lead-text">From soaring alpine glaciers to historical landmarks.</p>
     </div>
     
     <a href="#main-content-anchor" class="scroll-indicator">
@@ -141,47 +141,45 @@
   <!-- Anchor to scroll down to -->
   <div id="main-content-anchor" style="position: relative; top: -80px;"></div>
 
-  <!-- Country Selection Grid (Main Landing Content) -->
-  <section class="container country-selection-view" id="country-selection-view">
-    <h2 class="section-title"><i class="fa-solid fa-earth-americas"></i> Explore Countries</h2>
-    <div class="country-grid" id="country-grid">
-      <!-- Switzerland Card -->
-      <a href="/countries/switzerland/" class="country-card" aria-label="Explore Switzerland travel journal">
-        <div class="country-card-bg" style="background-image: url('/assets/images/switzerland/lake_geneva_thumb.webp');"></div>
-        <div class="country-card-overlay"></div>
-        <div class="country-card-content">
-          <div class="country-card-flag">🇨🇭</div>
-          <h3 class="country-card-name">Switzerland</h3>
-          <p class="country-card-tagline">Alpine lakes & global peace monuments.</p>
-          <button class="country-card-btn" tabindex="-1">Explore Travels <i class="fa-solid fa-arrow-right"></i></button>
-        </div>
-      </a>
-      
-      <!-- France Card -->
-      <a href="/countries/france/" class="country-card" aria-label="Explore France travel journal">
-        <div class="country-card-bg" style="background-image: url('/assets/images/france/france_hero_thumb.webp');"></div>
-        <div class="country-card-overlay"></div>
-        <div class="country-card-content">
-          <div class="country-card-flag">🇫🇷</div>
-          <h3 class="country-card-name">France</h3>
-          <p class="country-card-tagline">From soaring alpine glaciers to historical landmarks.</p>
-          <button class="country-card-btn" tabindex="-1">Explore Travels <i class="fa-solid fa-arrow-right"></i></button>
-        </div>
-      </a>
+  <!-- City Tabs Selector Container -->
+  <div class="container" id="city-selector-view" style="display: none;">
+    <!-- Rendered dynamically by app.js only if country has multiple cities -->
+  </div>
 
-      <!-- Germany Card -->
-      <a href="/countries/germany/" class="country-card" aria-label="Explore Germany travel journal">
-        <div class="country-card-bg" style="background-image: url('/assets/images/germany/city_streets_thumb.webp');"></div>
-        <div class="country-card-overlay"></div>
-        <div class="country-card-content">
-          <div class="country-card-flag">🇩🇪</div>
-          <h3 class="country-card-name">Germany</h3>
-          <p class="country-card-tagline">Football culture, industrial heritage, and city warmth.</p>
-          <button class="country-card-btn" tabindex="-1">Explore Travels <i class="fa-solid fa-arrow-right"></i></button>
-        </div>
-      </a>
+  <!-- Main Layout Section (Journal Chapters View, Hidden by default) -->
+  <main class="container main-layout" id="journal-section" style="display: none;">
+    
+    <!-- Sidebar navigation -->
+    <aside class="sidebar glass-panel">
+      <h2 class="sidebar-title">
+        <i class="fa-solid fa-map-location-dot"></i> Chapters
+      </h2>
+      <ul class="chapter-nav-list" id="chapter-list">
+        <!-- Chapters loaded based on active city -->
+      </ul>
+    </aside>
+
+    <!-- Content details -->
+    <article class="content-area glass-panel" id="content-container">
+      <div class="chapter-content">
+        <p>Loading journal contents...</p>
+      </div>
+    </article>
+
+  </main>
+
+  <!-- Image Lightbox Modal -->
+  <div class="lightbox" id="image-lightbox">
+    <div class="lightbox-content">
+      <button class="lightbox-close" id="lightbox-close-btn">&times;</button>
+      <img src="" alt="" id="lightbox-img">
+      <div class="lightbox-caption" id="lightbox-caption-text">Image Caption</div>
+      
+      <!-- Nav Arrows -->
+      <button class="lightbox-nav lightbox-prev" id="lightbox-prev-btn"><i class="fa-solid fa-chevron-left"></i></button>
+      <button class="lightbox-nav lightbox-next" id="lightbox-next-btn"><i class="fa-solid fa-chevron-right"></i></button>
     </div>
-  </section>
+  </div>
 
   <!-- Footer Section -->
   <footer>
@@ -197,6 +195,7 @@
   <!-- Supabase JS Client library CDN -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" defer></script>
   <script src="/config.js" defer></script>
+  <script src="/data/france-data.js" defer></script>
   <script src="/app.js" defer></script>
 </body>
 </html>

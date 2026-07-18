@@ -1,9 +1,6 @@
 document.addEventListener('DOMContentLoaded', () => {
-  // Check if data.js was loaded successfully
-  if (typeof TRAVEL_DATA === 'undefined') {
-    console.error('TRAVEL_DATA is not defined. Make sure data.js is loaded.');
-    return;
-  }
+  // Check if COUNTRY_DATA or COUNTRIES_META is loaded
+  const isCountryPage = (typeof COUNTRY_DATA !== 'undefined');
 
   // --- DOM Elements ---
   const chapterList = document.getElementById('chapter-list');
@@ -20,8 +17,7 @@ document.addEventListener('DOMContentLoaded', () => {
   // --- Multi-Country DOM Elements ---
   const countrySelectionView = document.getElementById('country-selection-view');
   const countryGrid = document.getElementById('country-grid');
-  const citySelectionView = document.getElementById('city-selection-view');
-  const cityGrid = document.getElementById('city-grid');
+  const citySelectionView = document.getElementById('city-selector-view');
   const journalSection = document.getElementById('journal-section');
   const backToCountriesBtn = document.getElementById('back-to-countries-btn');
   const headerLogoHome = document.getElementById('header-logo-home');
@@ -52,7 +48,6 @@ document.addEventListener('DOMContentLoaded', () => {
   const loginBtn = document.getElementById('login-btn');
 
   // --- State Variables ---
-  let activeCountryId = null; // Starts null to show country selection screen
   let activeCityId = null;
   let activeChapterId = null;
   let currentGallery = [];
@@ -84,9 +79,13 @@ document.addEventListener('DOMContentLoaded', () => {
   function initApp() {
     setupTheme();
     setupSupabase();
-    renderCountryGrid();
     setupEventListeners();
-    handleRouting(); // Process URL routing on load
+    
+    if (isCountryPage) {
+      setupCountryPage();
+    } else {
+      updateViewVisibility();
+    }
   }
 
   // --- Theme Logic ---
@@ -105,11 +104,10 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function updateThemeIcon(theme) {
+    if (!themeToggle) return;
     const icon = themeToggle.querySelector('i');
-    if (theme === 'dark') {
-      icon.className = 'fa-solid fa-sun';
-    } else {
-      icon.className = 'fa-solid fa-moon';
+    if (icon) {
+      icon.className = theme === 'dark' ? 'fa-solid fa-sun' : 'fa-solid fa-moon';
     }
   }
 
@@ -143,35 +141,40 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // --- Auth UI Management ---
   function handleUserAuthenticated(user) {
-    authOverlay.classList.add('hidden');
-    loginBtn.style.display = 'none';
-    userEmailText.textContent = user.email;
-    userControls.style.display = 'flex';
+    if (authOverlay) authOverlay.classList.add('hidden');
+    if (loginBtn) loginBtn.style.display = 'none';
+    if (userEmailText) userEmailText.textContent = user.email;
+    if (userControls) userControls.style.display = 'flex';
     clearAuthMessage();
   }
 
   function handleUserUnauthenticated() {
-    if (isLoginSkipped) {
-      authOverlay.classList.add('hidden');
-    } else {
-      authOverlay.classList.remove('hidden');
+    if (authOverlay) {
+      if (isLoginSkipped) {
+        authOverlay.classList.add('hidden');
+      } else {
+        authOverlay.classList.remove('hidden');
+      }
     }
-    userControls.style.display = 'none';
-    loginBtn.style.display = 'flex';
-    userEmailText.textContent = '';
+    if (userControls) userControls.style.display = 'none';
+    if (loginBtn) loginBtn.style.display = 'flex';
+    if (userEmailText) userEmailText.textContent = '';
   }
 
   function disableAuthInputs() {
+    if (!authOverlay) return;
     const inputs = authOverlay.querySelectorAll('input, button[type="submit"]');
     inputs.forEach(el => el.disabled = true);
   }
 
   function showAuthMessage(msg, type) {
+    if (!authMessage) return;
     authMessage.textContent = msg;
     authMessage.className = `auth-message ${type}`;
   }
 
   function clearAuthMessage() {
+    if (!authMessage) return;
     authMessage.textContent = '';
     authMessage.className = 'auth-message';
   }
@@ -179,215 +182,120 @@ document.addEventListener('DOMContentLoaded', () => {
   // --- View Switching Control ---
   function updateViewVisibility() {
     if (!currentUser && !isLoginSkipped) {
-      // Unauthenticated and not skipped: show country selector in background, show auth overlay
-      countrySelectionView.style.display = 'block';
-      citySelectionView.style.display = 'none';
-      journalSection.style.display = 'none';
-      backToCountriesBtn.style.display = 'none';
-      statsPillGroup.style.display = 'none';
-      authOverlay.classList.remove('hidden');
+      if (countrySelectionView) countrySelectionView.style.display = 'block';
+      if (citySelectionView) citySelectionView.style.display = 'none';
+      if (journalSection) journalSection.style.display = 'none';
+      if (backToCountriesBtn) backToCountriesBtn.style.display = 'none';
+      if (statsPillGroup) statsPillGroup.style.display = 'none';
+      if (authOverlay) authOverlay.classList.remove('hidden');
       return;
     }
 
-    if (activeCountryId === null) {
-      // Home / Country Selection Screen
-      countrySelectionView.style.display = 'block';
-      countrySelectionView.classList.add('fade-in');
-      citySelectionView.style.display = 'none';
-      journalSection.style.display = 'none';
-      backToCountriesBtn.style.display = 'none';
-      statsPillGroup.style.display = 'none';
-      
-      // Reset Hero to default
-      heroSection.style.backgroundImage = "url('assets/images/hero_bg.webp')";
-      heroTitleText.textContent = "Wander Pages";
-      heroTaglineText.textContent = "Every place leaves a page.";
-      heroLeadText.textContent = TRAVEL_DATA.tagline;
-    } else if (activeCityId === null) {
-      // City Selection Screen inside a Country
-      countrySelectionView.style.display = 'none';
-      citySelectionView.style.display = 'block';
-      citySelectionView.classList.add('fade-in');
-      journalSection.style.display = 'none';
-      backToCountriesBtn.style.display = 'flex';
-      backToCountriesBtn.innerHTML = `<i class="fa-solid fa-arrow-left"></i> Countries`;
-      statsPillGroup.style.display = 'none';
+    if (authOverlay) authOverlay.classList.add('hidden');
 
-      // Update Hero to match country cover image
-      const country = TRAVEL_DATA.countries.find(c => c.id === activeCountryId);
-      if (country && country.coverImage) {
-        heroSection.style.backgroundImage = `url('${getWebpUrl(country.coverImage)}')`;
-        heroTitleText.textContent = country.name;
-        heroTaglineText.textContent = `${country.flag} Explore My Travels`;
-        heroLeadText.textContent = country.tagline;
-      }
+    if (!isCountryPage) {
+      // Homepage: show country grid
+      if (countrySelectionView) countrySelectionView.style.display = 'block';
+      if (citySelectionView) citySelectionView.style.display = 'none';
+      if (journalSection) journalSection.style.display = 'none';
+      if (backToCountriesBtn) backToCountriesBtn.style.display = 'none';
+      if (statsPillGroup) statsPillGroup.style.display = 'none';
     } else {
-      // Active City Chapters View
-      countrySelectionView.style.display = 'none';
+      // Country subpage
+      if (countrySelectionView) countrySelectionView.style.display = 'none';
+    }
+  }
+
+  // --- Country Page Setup ---
+  function setupCountryPage() {
+    if (!isCountryPage) return;
+
+    // Set Hero Background & text
+    if (COUNTRY_DATA.coverImage) {
+      heroSection.style.backgroundImage = `url('${getWebpUrl(COUNTRY_DATA.coverImage)}')`;
+    }
+    heroTitleText.textContent = COUNTRY_DATA.name;
+    heroTaglineText.textContent = `Stories collected along the way.`;
+    heroLeadText.textContent = COUNTRY_DATA.tagline;
+
+    // Render city selectors
+    renderCitySelectors();
+
+    // If multiple cities, show selectors but hide journal layout first
+    if (COUNTRY_DATA.cities.length > 1) {
+      citySelectionView.style.display = 'block';
+      journalSection.style.display = 'none';
+      statsPillGroup.style.display = 'none';
+    }
+  }
+
+  // --- Render City Selection Tabs ---
+  function renderCitySelectors() {
+    if (!citySelectionView) return;
+
+    if (COUNTRY_DATA.cities.length <= 1) {
+      // Auto-select city and skip rendering tabs
       citySelectionView.style.display = 'none';
-      journalSection.style.display = 'grid';
-      journalSection.classList.add('fade-in');
-      backToCountriesBtn.style.display = 'flex';
-      backToCountriesBtn.innerHTML = `<i class="fa-solid fa-arrow-left"></i> Cities`;
-      statsPillGroup.style.display = 'flex';
-    }
-  }
-
-  // --- Render Country Selection Grid ---
-  function renderCountryGrid() {
-    const cardsHTML = TRAVEL_DATA.countries.map(country => {
-      const thumbUrl = getThumbnailUrl(country.coverImage);
-      const bgStyle = thumbUrl
-        ? `background-image: url('${thumbUrl}');`
-        : `background: linear-gradient(135deg, hsl(220, 25%, 18%), hsl(220, 20%, 10%));`;
-      
-      return `
-        <div class="country-card" data-id="${country.id}">
-          <div class="country-card-bg" style="${bgStyle}"></div>
-          <div class="country-card-overlay"></div>
-          <div class="country-card-content">
-            <div class="country-card-flag">${country.flag}</div>
-            <h3 class="country-card-name">${country.name}</h3>
-            <p class="country-card-tagline">${country.tagline}</p>
-            <button class="country-card-btn">Explore Travels <i class="fa-solid fa-arrow-right"></i></button>
-          </div>
-        </div>
-      `;
-    }).join('');
-    
-    countryGrid.innerHTML = cardsHTML;
-  }
-
-  // --- Render City Selection Grid ---
-  function renderCityGrid() {
-    cityGrid.innerHTML = '';
-    const country = TRAVEL_DATA.countries.find(c => c.id === activeCountryId);
-    if (!country) return;
-
-    const citiesHTML = country.cities.map(city => {
-      const thumbUrl = getThumbnailUrl(city.heroImage);
-      const bgStyle = thumbUrl
-        ? `background-image: url('${thumbUrl}');`
-        : `background: linear-gradient(135deg, hsl(220, 25%, 18%), hsl(220, 20%, 10%));`;
-
-      return `
-        <div class="city-card" data-id="${city.id}">
-          <div class="city-card-bg" style="${bgStyle}"></div>
-          <div class="city-card-overlay"></div>
-          <div class="city-card-content">
-            <h3 class="city-card-name">${city.name}</h3>
-            <p class="city-card-tagline">${city.travelDate} • ${city.duration}</p>
-            <button class="city-card-btn">Explore Travels <i class="fa-solid fa-arrow-right"></i></button>
-          </div>
-        </div>
-      `;
-    }).join('');
-
-    cityGrid.innerHTML = citiesHTML;
-  }
-
-  // --- Select Country and Trigger Transition ---
-  function selectCountry(countryId, updateHash = true) {
-    const country = TRAVEL_DATA.countries.find(c => c.id === countryId);
-    if (!country) return;
-
-    activeCountryId = countryId;
-    activeCityId = null;
-
-    renderCityGrid();
-
-    if (updateHash) {
-      window.location.hash = `/countries/${countryId}`;
+      selectCity(COUNTRY_DATA.cities[0].id);
+      return;
     }
 
-    // Apply fade out animation to Country selection
-    countrySelectionView.classList.add('fade-out');
-    
-    setTimeout(() => {
-      countrySelectionView.classList.remove('fade-out');
-      
-      if (country.coverImage) {
-        heroSection.style.backgroundImage = `url('${getWebpUrl(country.coverImage)}')`;
-      } else {
-        heroSection.style.backgroundImage = 'none';
-        heroSection.style.background = 'linear-gradient(135deg, hsl(220, 30%, 12%), hsl(240, 25%, 8%))';
-      }
-      heroTitleText.textContent = country.name;
-      heroTaglineText.textContent = `${country.flag} My Journeys`;
-      heroLeadText.textContent = country.tagline;
+    citySelectionView.style.display = 'block';
+    citySelectionView.innerHTML = `
+      <div class="city-tabs" style="display: flex; gap: 16px; margin: 40px 0 20px; justify-content: center; flex-wrap: wrap;">
+        ${COUNTRY_DATA.cities.map(city => `
+          <button class="city-tab-btn ${city.id === activeCityId ? 'active' : ''}" data-id="${city.id}" style="padding: 12px 28px; border-radius: 100px; border: 1px solid var(--border-color); background: var(--bg-card); cursor: pointer; font-family: 'Inter', sans-serif; font-weight: 600; font-size: 0.95rem; color: var(--text-muted); transition: all 0.22s var(--transition-bezier);">
+            ${city.name}
+          </button>
+        `).join('')}
+      </div>
+    `;
 
-      updateViewVisibility();
-      
-      // Smooth scroll down to main content
-      document.getElementById('main-content-anchor').scrollIntoView({ behavior: 'smooth' });
-    }, 200);
+    const tabButtons = citySelectionView.querySelectorAll('.city-tab-btn');
+    tabButtons.forEach(btn => {
+      btn.addEventListener('click', () => {
+        tabButtons.forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        selectCity(btn.dataset.id);
+      });
+    });
   }
 
-  // --- Select City and Trigger Transition ---
-  function selectCity(cityId, updateHash = true) {
-    const country = TRAVEL_DATA.countries.find(c => c.id === activeCountryId);
-    if (!country) return;
-
-    const city = country.cities.find(c => c.id === cityId);
+  // --- Select City ---
+  function selectCity(cityId) {
+    const city = COUNTRY_DATA.cities.find(c => c.id === cityId);
     if (!city) return;
 
     activeCityId = cityId;
 
-    if (updateHash) {
-      window.location.hash = `/countries/${activeCountryId}/${cityId}`;
-    }
-
-    // Set first chapter active
     if (city.chapters && city.chapters.length > 0) {
       activeChapterId = city.chapters[0].id;
     } else {
       activeChapterId = null;
     }
 
-    citySelectionView.classList.add('fade-out');
-    
-    setTimeout(() => {
-      citySelectionView.classList.remove('fade-out');
-
-      // Update Hero to match city
-      if (city.heroImage) {
-        heroSection.style.backgroundImage = `url('${getWebpUrl(city.heroImage)}')`;
-      } else {
-        heroSection.style.backgroundImage = 'none';
-        heroSection.style.background = 'linear-gradient(135deg, hsl(220, 30%, 12%), hsl(240, 25%, 8%))';
-      }
-      heroTitleText.textContent = city.name;
-      heroTaglineText.textContent = `${country.flag} ${city.name} Travelogue`;
-      heroLeadText.textContent = city.introduction;
-
-      // Update Header Stats
-      statCountry.innerHTML = `<i class="fa-solid fa-earth-americas"></i> ${country.name}`;
-      statCity.innerHTML = `<i class="fa-solid fa-city"></i> ${city.name}`;
-      statDays.innerHTML = `<i class="fa-solid fa-calendar-days"></i> ${city.duration}`;
-
-      renderSidebar();
-      if (activeChapterId) {
-        loadChapter(activeChapterId, false);
-      }
-
-      updateViewVisibility();
-      
-      // Smooth scroll down to main content
-      document.getElementById('main-content-anchor').scrollIntoView({ behavior: 'smooth' });
-    }, 200);
-  }
-
-  function showCountrySelection(updateHash = true) {
-    activeCountryId = null;
-    activeCityId = null;
-    activeChapterId = null;
-
-    if (updateHash) {
-      window.location.hash = '/';
+    // Update Hero to match city details
+    if (city.heroImage) {
+      heroSection.style.backgroundImage = `url('${getWebpUrl(city.heroImage)}')`;
     }
+    heroTitleText.textContent = city.name;
+    heroTaglineText.textContent = `${COUNTRY_DATA.flag} ${city.name} Travelogue`;
+    heroLeadText.textContent = city.introduction;
 
-    updateViewVisibility();
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    // Stats
+    statCountry.innerHTML = `<i class="fa-solid fa-earth-americas"></i> ${COUNTRY_DATA.name}`;
+    statCity.innerHTML = `<i class="fa-solid fa-city"></i> ${city.name}`;
+    statDays.innerHTML = `<i class="fa-solid fa-calendar-days"></i> ${city.duration}`;
+    statsPillGroup.style.display = 'flex';
+
+    // Show content container
+    journalSection.style.display = 'grid';
+    journalSection.classList.add('fade-in');
+
+    renderSidebar();
+    if (activeChapterId) {
+      loadChapter(activeChapterId, false);
+    }
   }
 
   // --- Auth Form Submissions ---
@@ -430,7 +338,6 @@ document.addEventListener('DOMContentLoaded', () => {
       if (error) throw error;
 
       if (data && data.user) {
-        // Auto-subscribe user to updates
         const { error: profileError } = await supabase
           .from('profiles')
           .insert({ 
@@ -460,7 +367,6 @@ document.addEventListener('DOMContentLoaded', () => {
       const { error } = await supabase.auth.signOut();
       if (error) throw error;
       isLoginSkipped = false;
-      activeCountryId = null;
       activeCityId = null;
       activeChapterId = null;
     } catch (err) {
@@ -468,10 +374,10 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
-  // --- Render Sidebar based on active city ---
+  // --- Render Chapters Sidebar ---
   function renderSidebar() {
-    const country = TRAVEL_DATA.countries.find(c => c.id === activeCountryId);
-    const city = country ? country.cities.find(c => c.id === activeCityId) : null;
+    if (!chapterList) return;
+    const city = COUNTRY_DATA.cities.find(c => c.id === activeCityId);
     if (!city) {
       chapterList.innerHTML = '';
       return;
@@ -501,8 +407,9 @@ document.addEventListener('DOMContentLoaded', () => {
     chapterList.innerHTML = itemsHTML;
   }
 
-  // --- Switch Chapter (with transition) ---
+  // --- Switch Chapter ---
   function switchChapter(chapterId) {
+    if (!chapterList) return;
     const buttons = chapterList.querySelectorAll('.chapter-btn');
     buttons.forEach(btn => {
       if (btn.dataset.id === chapterId) {
@@ -527,10 +434,10 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
-  // --- Load and Render Chapter Content ---
+  // --- Load and Render Chapter ---
   function loadChapter(chapterId, scrollToContent = false) {
-    const country = TRAVEL_DATA.countries.find(c => c.id === activeCountryId);
-    const city = country ? country.cities.find(c => c.id === activeCityId) : null;
+    if (!contentContainer) return;
+    const city = COUNTRY_DATA.cities.find(c => c.id === activeCityId);
     if (!city) return;
 
     const chapter = city.chapters.find(c => c.id === chapterId);
@@ -544,7 +451,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (img.url) {
           return `
             <div class="gallery-card" data-index="${index}">
-              <img src="${getThumbnailUrl(img.url)}" alt="${img.caption}" loading="lazy">
+              <img src="${getThumbnailUrl(img.url)}" alt="${img.caption}" loading="lazy" decoding="async" width="400" height="300">
               <div class="gallery-overlay">
                 <span class="gallery-caption">${img.caption}</span>
               </div>
@@ -566,12 +473,12 @@ document.addEventListener('DOMContentLoaded', () => {
       `;
     }
 
-    // Dynamic headers (Hero Photo & Intro) - render only if available
+    // City headers (Hero banner and intro text)
     let cityHeaderHTML = '';
     if (city.heroImage || city.introduction) {
       const heroPhotoHTML = city.heroImage ? `
         <div class="city-header-hero">
-          <img src="${getWebpUrl(city.heroImage)}" alt="${city.name} Hero Photo" loading="eager">
+          <img src="${getWebpUrl(city.heroImage)}" alt="${city.name} Hero Photo" loading="eager" width="1200" height="280">
         </div>
       ` : '';
       
@@ -589,7 +496,7 @@ document.addEventListener('DOMContentLoaded', () => {
       `;
     }
 
-    // Reflective details at bottom
+    // Reflection modules
     let reflectionsHTML = '';
     let memoryHTML = '';
     if (city.favoriteMemory) {
@@ -622,14 +529,14 @@ document.addEventListener('DOMContentLoaded', () => {
       `;
     }
     
-    // Previous & Next City Navigation
+    // Prev / Next City Nav inside country page
     let navHTML = '';
-    const cityIndex = country.cities.findIndex(c => c.id === city.id);
-    const prevCity = cityIndex > 0 ? country.cities[cityIndex - 1] : null;
-    const nextCity = cityIndex < country.cities.length - 1 ? country.cities[cityIndex + 1] : null;
+    const cityIndex = COUNTRY_DATA.cities.findIndex(c => c.id === city.id);
+    const prevCity = cityIndex > 0 ? COUNTRY_DATA.cities[cityIndex - 1] : null;
+    const nextCity = cityIndex < COUNTRY_DATA.cities.length - 1 ? COUNTRY_DATA.cities[cityIndex + 1] : null;
     
-    let prevLink = prevCity ? `<a href="#/countries/${activeCountryId}/${prevCity.id}" class="city-nav-link"><i class="fa-solid fa-arrow-left-long"></i> Previous City: ${prevCity.name}</a>` : '<div></div>';
-    let nextLink = nextCity ? `<a href="#/countries/${activeCountryId}/${nextCity.id}" class="city-nav-link">Next City: ${nextCity.name} <i class="fa-solid fa-arrow-right-long"></i></a>` : '<div></div>';
+    let prevLink = prevCity ? `<button class="city-nav-link" data-id="${prevCity.id}" style="background:none;border:none;cursor:pointer;"><i class="fa-solid fa-arrow-left-long"></i> Previous City: ${prevCity.name}</button>` : '<div></div>';
+    let nextLink = nextCity ? `<button class="city-nav-link" data-id="${nextCity.id}" style="background:none;border:none;cursor:pointer;">Next City: ${nextCity.name} <i class="fa-solid fa-arrow-right-long"></i></button>` : '<div></div>';
     
     if (prevCity || nextCity) {
       navHTML = `
@@ -647,8 +554,8 @@ document.addEventListener('DOMContentLoaded', () => {
         ${lessonsHTML}
         ${navHTML}
         <div class="city-action-buttons">
-          <button class="btn-secondary-outline" id="btn-back-country"><i class="fa-solid fa-map-location-dot"></i> Back to ${country.name} Cities</button>
-          <button class="btn-secondary-outline" id="btn-back-countries"><i class="fa-solid fa-earth-americas"></i> Back to All Countries</button>
+          ${COUNTRY_DATA.cities.length > 1 ? `<button class="btn-secondary-outline" id="btn-back-cities-selector"><i class="fa-solid fa-map-location-dot"></i> Back to ${COUNTRY_DATA.name} Selectors</button>` : ''}
+          <a href="/" class="btn-secondary-outline" style="text-decoration:none;"><i class="fa-solid fa-earth-americas"></i> Back to All Countries</a>
         </div>
       </div>
     `;
@@ -675,22 +582,47 @@ document.addEventListener('DOMContentLoaded', () => {
 
     contentContainer.innerHTML = htmlContent;
 
-    // Bind listeners for dynamic action buttons
-    const btnBackCountry = contentContainer.querySelector('#btn-back-country');
-    const btnBackCountries = contentContainer.querySelector('#btn-back-countries');
-    
-    if (btnBackCountry) {
-      btnBackCountry.addEventListener('click', () => {
+    // Bind click listeners for internal city nav
+    const cityNavLinks = contentContainer.querySelectorAll('.city-nav-link');
+    cityNavLinks.forEach(link => {
+      link.addEventListener('click', () => {
+        selectCity(link.dataset.id);
+        
+        // Sync active state in tabs if tabs container exists
+        if (citySelectionView) {
+          const tabButtons = citySelectionView.querySelectorAll('.city-tab-btn');
+          tabButtons.forEach(b => {
+            if (b.dataset.id === link.dataset.id) b.classList.add('active');
+            else b.classList.remove('active');
+          });
+        }
+      });
+    });
+
+    const btnBackSelector = contentContainer.querySelector('#btn-back-cities-selector');
+    if (btnBackSelector) {
+      btnBackSelector.addEventListener('click', () => {
         activeCityId = null;
         activeChapterId = null;
-        window.location.hash = `/countries/${activeCountryId}`;
-        updateViewVisibility();
-      });
-    }
-    
-    if (btnBackCountries) {
-      btnBackCountries.addEventListener('click', () => {
-        showCountrySelection(true);
+        
+        // Reset tab buttons active classes
+        if (citySelectionView) {
+          const tabButtons = citySelectionView.querySelectorAll('.city-tab-btn');
+          tabButtons.forEach(b => b.classList.remove('active'));
+        }
+        
+        journalSection.style.display = 'none';
+        statsPillGroup.style.display = 'none';
+        citySelectionView.style.display = 'block';
+        citySelectionView.classList.add('fade-in');
+        
+        // Reset hero to country cover
+        if (COUNTRY_DATA.coverImage) {
+          heroSection.style.backgroundImage = `url('${getWebpUrl(COUNTRY_DATA.coverImage)}')`;
+        }
+        heroTitleText.textContent = COUNTRY_DATA.name;
+        heroTaglineText.textContent = `Stories collected along the way.`;
+        heroLeadText.textContent = COUNTRY_DATA.tagline;
       });
     }
 
@@ -717,7 +649,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // --- Lightbox Functions ---
   function openLightbox(index) {
-    if (currentGallery.length === 0) return;
+    if (!lightbox || currentGallery.length === 0) return;
     currentImageIndex = index;
     updateLightboxImage();
     
@@ -731,6 +663,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function closeLightbox() {
+    if (!lightbox) return;
     lightbox.classList.remove('active');
     document.body.style.overflow = '';
     document.body.style.paddingRight = '';
@@ -749,220 +682,119 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function updateLightboxImage() {
+    if (!lightboxImg) return;
     const item = currentGallery[currentImageIndex];
     if (!item) return;
     
     lightboxImg.style.opacity = '0.5';
     lightboxImg.src = getWebpUrl(item.url);
     lightboxImg.alt = item.caption;
-    lightboxCaption.textContent = item.caption;
+    if (lightboxCaption) lightboxCaption.textContent = item.caption;
     
     lightboxImg.onload = () => {
       lightboxImg.style.opacity = '1';
     };
   }
 
-  // --- Client-Side Routing ---
-  function handleRouting() {
-    let path = window.location.hash.replace(/^#/, '');
-    
-    if (!path && window.location.pathname !== '/' && window.location.pathname !== '/index.html') {
-      path = window.location.pathname;
-    }
-
-    if (!path || path === '/' || path === '/index.html') {
-      showCountrySelection(false);
-      return;
-    }
-
-    const parts = path.split('/').filter(Boolean); // e.g. ["countries", "switzerland", "geneva"]
-    
-    if (parts[0] === 'countries') {
-      const countryId = parts[1];
-      const cityId = parts[2];
-      
-      if (countryId) {
-        const country = TRAVEL_DATA.countries.find(c => c.id === countryId);
-        if (country) {
-          activeCountryId = countryId;
-          renderCityGrid();
-          
-          if (cityId) {
-            const city = country.cities.find(c => c.id === cityId);
-            if (city) {
-              activeCityId = cityId;
-              
-              if (city.chapters && city.chapters.length > 0) {
-                activeChapterId = city.chapters[0].id;
-              } else {
-                activeChapterId = null;
-              }
-              
-              // Load Hero elements
-              if (city.heroImage) {
-                heroSection.style.backgroundImage = `url('${getWebpUrl(city.heroImage)}')`;
-              }
-              heroTitleText.textContent = city.name;
-              heroTaglineText.textContent = `${country.flag} ${city.name} Travelogue`;
-              heroLeadText.textContent = city.introduction;
-
-              // Stats
-              statCountry.innerHTML = `<i class="fa-solid fa-earth-americas"></i> ${country.name}`;
-              statCity.innerHTML = `<i class="fa-solid fa-city"></i> ${city.name}`;
-              statDays.innerHTML = `<i class="fa-solid fa-calendar-days"></i> ${city.duration}`;
-
-              renderSidebar();
-              if (activeChapterId) {
-                loadChapter(activeChapterId, false);
-              }
-            } else {
-              activeCityId = null;
-            }
-          } else {
-            activeCityId = null;
-            
-            // Hero details for Country Selection
-            if (country.coverImage) {
-              heroSection.style.backgroundImage = `url('${getWebpUrl(country.coverImage)}')`;
-            }
-            heroTitleText.textContent = country.name;
-            heroTaglineText.textContent = `${country.flag} Explore My Travels`;
-            heroLeadText.textContent = country.tagline;
-          }
-          updateViewVisibility();
-        } else {
-          showCountrySelection(false);
-        }
-      } else {
-        showCountrySelection(false);
-      }
-    } else {
-      showCountrySelection(false);
-    }
-  }
-
   // --- Listeners Setup ---
   function setupEventListeners() {
-    // Theme Switcher
-    themeToggle.addEventListener('click', toggleTheme);
-
-    // Back to Countries/Cities Button
-    backToCountriesBtn.addEventListener('click', () => {
-      if (activeCityId !== null) {
-        activeCityId = null;
-        activeChapterId = null;
-        window.location.hash = `/countries/${activeCountryId}`;
-        updateViewVisibility();
-      } else if (activeCountryId !== null) {
-        showCountrySelection(true);
-      }
-    });
-
-    headerLogoHome.addEventListener('click', (e) => {
-      e.preventDefault();
-      if (activeCountryId !== null || activeCityId !== null) {
-        showCountrySelection(true);
-      }
-    });
-
-    // Hashchange listener for SPA routing
-    window.addEventListener('hashchange', handleRouting);
+    if (themeToggle) themeToggle.addEventListener('click', toggleTheme);
 
     // Event delegation for sidebar chapters selection
-    chapterList.addEventListener('click', (e) => {
-      const button = e.target.closest('.chapter-btn');
-      if (button) {
-        const chapterId = button.dataset.id;
-        if (activeChapterId !== chapterId) {
-          switchChapter(chapterId);
+    if (chapterList) {
+      chapterList.addEventListener('click', (e) => {
+        const button = e.target.closest('.chapter-btn');
+        if (button) {
+          const chapterId = button.dataset.id;
+          if (activeChapterId !== chapterId) {
+            switchChapter(chapterId);
+          }
         }
-      }
-    });
-
-    // Event delegation for country card selection
-    countryGrid.addEventListener('click', (e) => {
-      const card = e.target.closest('.country-card');
-      if (card) {
-        selectCountry(card.dataset.id);
-      }
-    });
-
-    // Event delegation for city card selection
-    cityGrid.addEventListener('click', (e) => {
-      const card = e.target.closest('.city-card');
-      if (card) {
-        selectCity(card.dataset.id);
-      }
-    });
+      });
+    }
 
     // Close Auth overlay to skip login
-    authCloseBtn.addEventListener('click', () => {
-      isLoginSkipped = true;
-      authOverlay.classList.add('hidden');
-      updateViewVisibility();
-    });
+    if (authCloseBtn) {
+      authCloseBtn.addEventListener('click', () => {
+        isLoginSkipped = true;
+        if (authOverlay) authOverlay.classList.add('hidden');
+        updateViewVisibility();
+      });
+    }
 
     // Show Auth overlay when clicking Sign In header button
-    loginBtn.addEventListener('click', () => {
-      isLoginSkipped = false;
-      authOverlay.classList.remove('hidden');
-      clearAuthMessage();
-    });
+    if (loginBtn) {
+      loginBtn.addEventListener('click', () => {
+        isLoginSkipped = false;
+        if (authOverlay) authOverlay.classList.remove('hidden');
+        clearAuthMessage();
+      });
+    }
 
     // Auth Form Tab Toggling
-    tabSignin.addEventListener('click', () => {
-      tabSignin.classList.add('active');
-      tabSignup.classList.remove('active');
-      signinForm.classList.add('active');
-      signupForm.classList.remove('active');
-      clearAuthMessage();
-    });
+    if (tabSignin) {
+      tabSignin.addEventListener('click', () => {
+        tabSignin.classList.add('active');
+        if (tabSignup) tabSignup.classList.remove('active');
+        if (signinForm) signinForm.classList.add('active');
+        if (signupForm) signupForm.classList.remove('active');
+        clearAuthMessage();
+      });
+    }
 
-    tabSignup.addEventListener('click', () => {
-      tabSignup.classList.add('active');
-      tabSignin.classList.remove('active');
-      signupForm.classList.add('active');
-      signinForm.classList.remove('active');
-      clearAuthMessage();
-    });
+    if (tabSignup) {
+      tabSignup.addEventListener('click', () => {
+        tabSignup.classList.add('active');
+        if (tabSignin) tabSignin.classList.remove('active');
+        if (signupForm) signupForm.classList.add('active');
+        if (signinForm) signinForm.classList.remove('active');
+        clearAuthMessage();
+      });
+    }
 
     // Form Submissions
-    signinForm.addEventListener('submit', handleSignIn);
-    signupForm.addEventListener('submit', handleSignUp);
+    if (signinForm) signinForm.addEventListener('submit', handleSignIn);
+    if (signupForm) signupForm.addEventListener('submit', handleSignUp);
 
     // Logout
-    logoutBtn.addEventListener('click', handleSignOut);
+    if (logoutBtn) logoutBtn.addEventListener('click', handleSignOut);
 
     // Header Scroll Indicator
     window.addEventListener('scroll', () => {
       if (window.scrollY > 50) {
-        mainHeader.classList.add('scrolled');
+        if (mainHeader) mainHeader.classList.add('scrolled');
       } else {
-        mainHeader.classList.remove('scrolled');
+        if (mainHeader) mainHeader.classList.remove('scrolled');
       }
     });
 
     // Lightbox Close
-    lightboxClose.addEventListener('click', closeLightbox);
-    lightbox.addEventListener('click', (e) => {
-      if (e.target === lightbox) {
-        closeLightbox();
-      }
-    });
+    if (lightboxClose) lightboxClose.addEventListener('click', closeLightbox);
+    if (lightbox) {
+      lightbox.addEventListener('click', (e) => {
+        if (e.target === lightbox) {
+          closeLightbox();
+        }
+      });
+    }
 
     // Lightbox Nav
-    lightboxNext.addEventListener('click', (e) => {
-      e.stopPropagation();
-      nextImage();
-    });
-    lightboxPrev.addEventListener('click', (e) => {
-      e.stopPropagation();
-      prevImage();
-    });
+    if (lightboxNext) {
+      lightboxNext.addEventListener('click', (e) => {
+        e.stopPropagation();
+        nextImage();
+      });
+    }
+    if (lightboxPrev) {
+      lightboxPrev.addEventListener('click', (e) => {
+        e.stopPropagation();
+        prevImage();
+      });
+    }
 
     // Keyboard Nav for Lightbox
     document.addEventListener('keydown', (e) => {
-      if (!lightbox.classList.contains('active')) return;
+      if (!lightbox || !lightbox.classList.contains('active')) return;
       
       if (e.key === 'Escape') {
         closeLightbox();
