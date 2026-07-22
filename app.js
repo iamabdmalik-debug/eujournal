@@ -14,6 +14,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const lightboxClose = document.getElementById('lightbox-close-btn');
   const lightboxPrev = document.getElementById('lightbox-prev-btn');
   const lightboxNext = document.getElementById('lightbox-next-btn');
+  const lightboxLoader = document.getElementById('lightbox-loader');
 
   // --- Multi-Country DOM Elements ---
   const countrySelectionView = document.getElementById('country-selection-view');
@@ -973,6 +974,12 @@ document.addEventListener('DOMContentLoaded', () => {
     lightbox.classList.remove('active');
     document.body.style.overflow = '';
     document.body.style.paddingRight = '';
+    if (lightboxLoader) {
+      lightboxLoader.style.display = 'none';
+    }
+    if (lightboxImg) {
+      lightboxImg.src = '';
+    }
     if (lightboxVideo) {
       lightboxVideo.pause();
       lightboxVideo.src = '';
@@ -999,6 +1006,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const isVideo = item.url.endsWith('.mp4');
     
     if (isVideo) {
+      if (lightboxLoader) lightboxLoader.style.display = 'none';
       lightboxImg.style.display = 'none';
       lightboxVideo.style.display = 'block';
       lightboxVideo.src = getWebpUrl(item.url);
@@ -1010,12 +1018,30 @@ document.addEventListener('DOMContentLoaded', () => {
       lightboxVideo.src = '';
       
       lightboxImg.style.display = 'block';
-      lightboxImg.style.opacity = '0.5';
+      lightboxImg.style.transition = 'opacity 0.25s ease';
+      
+      // If image is already fully loaded/cached, hide spinner immediately
+      let isCached = false;
+      const testImg = new Image();
+      testImg.src = getWebpUrl(item.url);
+      if (testImg.complete) {
+        isCached = true;
+      }
+
+      if (lightboxLoader && !isCached) {
+        lightboxLoader.style.display = 'block';
+        lightboxImg.style.opacity = '0';
+      } else {
+        if (lightboxLoader) lightboxLoader.style.display = 'none';
+        lightboxImg.style.opacity = '1';
+      }
+      
       lightboxImg.src = getWebpUrl(item.url);
       lightboxImg.alt = item.caption;
       if (lightboxCaption) lightboxCaption.textContent = item.caption;
       
       lightboxImg.onload = () => {
+        if (lightboxLoader) lightboxLoader.style.display = 'none';
         lightboxImg.style.opacity = '1';
       };
     }
@@ -1086,14 +1112,21 @@ document.addEventListener('DOMContentLoaded', () => {
     // Logout
     if (logoutBtn) logoutBtn.addEventListener('click', handleSignOut);
 
-    // Header Scroll Indicator
+    // Header Scroll Indicator (Throttled with requestAnimationFrame for smooth scrolling)
+    let ticking = false;
     window.addEventListener('scroll', () => {
-      if (window.scrollY > 50) {
-        if (mainHeader) mainHeader.classList.add('scrolled');
-      } else {
-        if (mainHeader) mainHeader.classList.remove('scrolled');
+      if (!ticking) {
+        window.requestAnimationFrame(() => {
+          if (window.scrollY > 50) {
+            if (mainHeader) mainHeader.classList.add('scrolled');
+          } else {
+            if (mainHeader) mainHeader.classList.remove('scrolled');
+          }
+          ticking = false;
+        });
+        ticking = true;
       }
-    });
+    }, { passive: true });
 
     // Lightbox Close
     if (lightboxClose) lightboxClose.addEventListener('click', closeLightbox);
