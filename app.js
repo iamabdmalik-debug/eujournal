@@ -667,6 +667,21 @@ document.addEventListener('DOMContentLoaded', () => {
         desc: "A wide, panoramic view of Lake Geneva at sunset, with the silhouette of the Jura Mountains in the distance. The golden hues reflecting on the water capture the calm, peaceful alpine atmosphere.",
         meta: "Lake Geneva • July 12"
       },
+      'geneva_marina_sunset.jpg': {
+        title: "Sunset over the Marina",
+        desc: "Dozens of local sailboats and yachts docked at the Geneva marina silhouetted against a brilliant sunset sky, reflecting the quiet evening lakeside charm.",
+        meta: "Lake Geneva • July 12"
+      },
+      'geneva_gelato_shop.jpg': {
+        title: "Lakeside Gelato Treat",
+        desc: "Sampling some infamous local Italian gelato from a shop right alongside the Jet d'Eau. Enjoying colorful scoops of sweet treats is a perfect way to relax during a sunny day of lakeside walking.",
+        meta: "Lake Geneva • July 12"
+      },
+      'jet_deau_night.jpg': {
+        title: "Jet d'Eau at Night",
+        desc: "The Jet d'Eau illuminated in brilliant white against the night sky, throwing a giant column of water that glows alongside the city's harbor lights.",
+        meta: "Lake Geneva • July 12"
+      },
 
       // --- Switzerland: City Vibe ---
       'geneva_cathedral_aerial.jpg': {
@@ -688,6 +703,36 @@ document.addEventListener('DOMContentLoaded', () => {
         title: "The Flower Clock",
         desc: "Geneva's famous Flower Clock (L'horloge fleurie) illuminated in the Jardin Anglais at night. This beautiful living monument of thousands of seasonal flowers celebrates the city's legendary history of Swiss watchmaking.",
         meta: "Jardin Anglais • July 14"
+      },
+      'geneva_bike_ride_day.jpg': {
+        title: "Exploring by Bike",
+        desc: "Renting a local bike to explore Geneva's wide streets, clock towers, and tram crossings. Navigating through the city on two wheels is the perfect way to feel the local speed and energy.",
+        meta: "Geneva Center • July 14"
+      },
+      'geneva_street_towers.jpg': {
+        title: "Geneva Streets and Architecture",
+        desc: "A view down a street in central Geneva with traditional clock towers and tram tracks overhead, representing the daily rhythm and architectural heritage of the city.",
+        meta: "Geneva Center • July 14"
+      },
+      'mont_blanc_bridge_night.jpg': {
+        title: "View from the Ferris Wheel",
+        desc: "A spectacular night view looking down at the Mont-Blanc Bridge lights, captured from the top of the Geneva Ferris Wheel alongside the lake.",
+        meta: "Lake Geneva • July 14"
+      },
+      'geneva_bike_ride_night.jpg': {
+        title: "Night Cycling Route",
+        desc: "Cycling through the peaceful, lit-up streets of Geneva at night. The green traffic lights guide a quiet ride back along the urban bike lanes.",
+        meta: "Geneva Center • July 14"
+      },
+      'lakefront_bike_ride_sunset.jpg': {
+        title: "Sunset Lakefront Ride",
+        desc: "Catching the sunset on a bike ride along the Geneva lakefront promenade. Pedaling with views of the orange sky and families relaxing on the grass is a perfect evening highlight.",
+        meta: "Lake Geneva • July 14"
+      },
+      'geneva_airport_sunset.jpg': {
+        title: "GVA Station Sunset",
+        desc: "Arriving at the Geneva GVA airport station under a soft orange sunset sky, marking the beginning of a fresh Swiss exploration.",
+        meta: "GVA Station • July 14"
       },
 
       // --- France: Paris ---
