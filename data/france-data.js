@@ -11,7 +11,7 @@ const COUNTRY_DATA = {
       countryName: "France",
       travelDate: "July 17 - July 19, 2026",
       duration: "3 Days",
-      heroImage: "assets/images/france/paris_eiffel.webp",
+      heroImage: "assets/images/france/paris_hero.jpeg",
       introduction: "Paris is a city of pure history, art, and grand architecture. Walking along the Seine and exploring its monumental landmarks offers an unforgettable cultural experience.",
       favoriteMemory: "Sitting by the Louvre pyramids at dusk as the glass structure glowed beautifully against the night sky.",
       experiences: [
@@ -27,7 +27,7 @@ const COUNTRY_DATA = {
           subtitle: "Iconic monuments and cultural walks",
           date: "Day 10 - July 19",
           gallery: [
-            { url: "assets/images/france/paris_eiffel.webp", caption: "The Eiffel Tower standing tall over the Champ de Mars in the afternoon" },
+            { url: "assets/images/france/paris_hero.jpeg", caption: "The Eiffel Tower standing tall over the Champ de Mars in the afternoon" },
             { url: "assets/images/france/paris_louvre.webp", caption: "The glass pyramid of the Louvre glowing beautifully at dusk" }
           ],
           journal: "Paris is a city of pure history and grandeur. Seeing the Eiffel Tower in person is a sensation that photos cannot capture—especially as the sun begins to set and the tower starts to glitter with thousands of lights. Walking along the Seine led us to the Louvre Palace, where the historic French architecture blends seamlessly with the modern glass pyramids. Sitting at a traditional cafe on the corner, sipping on espresso and enjoying a fresh croissant, was the perfect way to soak in the romantic and bustling atmosphere of the French capital."

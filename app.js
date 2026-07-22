@@ -102,6 +102,16 @@ document.addEventListener('DOMContentLoaded', () => {
   function getThumbnailUrl(url) {
     if (!url) return '';
     let processed = url;
+    
+    // Custom optimized thumbnail mapping
+    if (processed.includes('lake_geneva_steamship.jpg')) {
+      processed = 'assets/images/switzerland/lake_geneva_steamship_thumb.jpg';
+    } else if (processed.includes('paris_hero.jpeg')) {
+      processed = 'assets/images/france/paris_hero_thumb.jpg';
+    } else if (processed.includes('hero.jpeg')) {
+      processed = 'assets/images/france/hero_thumb.jpg';
+    }
+
     const isNewUpload = processed.includes('lake_geneva_steamship') || 
                         processed.includes('broken_chair_dusk') || 
                         processed.includes('jet_deau_rainbow') || 
@@ -642,7 +652,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Static fallback metadata mapping for other countries
     const IMAGE_STORY_META = {
       // --- France: Paris ---
-      'paris_eiffel.webp': {
+      'paris_hero.jpeg': {
         title: "Eiffel Tower Afternoon",
         desc: "The Eiffel Tower stands tall over the green lawns of Champ de Mars in the afternoon. Walking along the Seine, seeing the tower in person is a sensation that photographs cannot fully capture.",
         meta: "Champ de Mars • July 19"
