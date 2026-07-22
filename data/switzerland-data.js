@@ -36,10 +36,10 @@ const COUNTRY_DATA = {
               location: "Place des Nations • July 10"
             },
             { 
-              url: "assets/images/switzerland/itu_un_complex_dusk.jpg", 
-              caption: "The ITU and United Nations complex office windows glowing at dusk",
+              url: "assets/images/switzerland/un_flag.jpeg", 
+              caption: "The United Nations Palais des Nations flags blowing in the breeze",
               title: "UN Palais des Nations",
-              description: "Standing in front of the Palais des Nations is a profound experience. The long avenue lined with colorful flags of member nations speaks to the hope of global cooperation, while the glowing office windows at dusk represent the constant work of peace diplomacy.",
+              description: "Standing in front of the Palais des Nations is a profound experience. The long avenue lined with colorful flags of member nations speaks to the hope of global cooperation, representing Geneva's peacekeeping legacy.",
               location: "Palais des Nations • July 10"
             }
           ],
@@ -87,9 +87,9 @@ const COUNTRY_DATA = {
               location: "Lake Geneva • July 12"
             },
             { 
-              url: "assets/images/switzerland/geneva_gelato_shop.jpg", 
+              url: "assets/images/switzerland/sweet_spot.jpeg", 
               caption: "Sampling delicious local Italian gelato alongside the Jet d'Eau",
-              title: "A Sweet Stop",
+              title: "Sweet spot",
               description: "Sampling some infamous local Italian gelato from a shop right alongside the Jet d'Eau. Enjoying colorful scoops of sweet treats is the perfect lakeside reward after a long day of walking.",
               location: "Lake Geneva • July 12"
             },

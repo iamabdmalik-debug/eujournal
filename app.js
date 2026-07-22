@@ -84,6 +84,8 @@ document.addEventListener('DOMContentLoaded', () => {
                         processed.includes('geneva_bike_ride_night') || 
                         processed.includes('itu_un_complex_dusk') || 
                         processed.includes('geneva_airport_sunset') ||
+                        processed.includes('un_flag') ||
+                        processed.includes('sweet_spot') ||
                         processed.endsWith('.mp4');
 
     if (processed.includes('assets/images/') && !isNewUpload) {
@@ -116,6 +118,8 @@ document.addEventListener('DOMContentLoaded', () => {
                         processed.includes('geneva_bike_ride_night') || 
                         processed.includes('itu_un_complex_dusk') || 
                         processed.includes('geneva_airport_sunset') ||
+                        processed.includes('un_flag') ||
+                        processed.includes('sweet_spot') ||
                         processed.endsWith('.mp4');
 
     if (processed.includes('assets/images/') && !processed.includes('_thumb.') && !isNewUpload) {
