@@ -11,7 +11,7 @@ const COUNTRY_DATA = {
       countryName: "Switzerland",
       travelDate: "July 10 - July 16, 2026",
       duration: "7 Days",
-      heroImage: "assets/images/switzerland/lake_geneva_sunset_jura.jpg",
+      heroImage: "assets/images/switzerland/lake_geneva_steamship.jpg",
       introduction: "Geneva is a city of peace and stunning alpine backdrops. Home to major international organizations and the majestic Lake Geneva, it offers a unique blend of global cooperation, Swiss precision, and lakeside beauty.",
       favoriteMemory: "Watching the massive Jet d'Eau shoot water 140 meters high as the sunset cast a fleeting rainbow across the harbor.",
       experiences: [
