@@ -9,6 +9,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const mainHeader = document.getElementById('main-header');
   const lightbox = document.getElementById('image-lightbox');
   const lightboxImg = document.getElementById('lightbox-img');
+  const lightboxVideo = document.getElementById('lightbox-video');
   const lightboxCaption = document.getElementById('lightbox-caption-text');
   const lightboxClose = document.getElementById('lightbox-close-btn');
   const lightboxPrev = document.getElementById('lightbox-prev-btn');
@@ -65,10 +66,29 @@ document.addEventListener('DOMContentLoaded', () => {
   function getWebpUrl(url) {
     if (!url) return '';
     let processed = url;
-    if (processed.includes('assets/images/')) {
+    const isNewUpload = processed.includes('lake_geneva_steamship') || 
+                        processed.includes('broken_chair_dusk') || 
+                        processed.includes('jet_deau_rainbow') || 
+                        processed.includes('geneva_street_towers') || 
+                        processed.includes('geneva_cathedral_aerial') || 
+                        processed.includes('old_town_lantern') || 
+                        processed.includes('jet_deau_night') || 
+                        processed.includes('mont_blanc_bridge_night') || 
+                        processed.includes('flower_clock_night') || 
+                        processed.includes('geneva_bike_ride_day') || 
+                        processed.includes('old_town_apartment_street') || 
+                        processed.includes('lakefront_bike_ride_sunset') || 
+                        processed.includes('geneva_marina_sunset') || 
+                        processed.includes('lake_geneva_sunset_jura') || 
+                        processed.includes('geneva_gelato_shop') || 
+                        processed.includes('geneva_bike_ride_night') || 
+                        processed.includes('itu_un_complex_dusk') || 
+                        processed.includes('geneva_airport_sunset') ||
+                        processed.endsWith('.mp4');
+
+    if (processed.includes('assets/images/') && !isNewUpload) {
       processed = processed.replace(/\.(jpg|jpeg|png)$/i, '.webp');
     }
-    // Ensure absolute path resolver to correct nested subdirectory path errors
     if (processed.startsWith('assets/')) {
       processed = '/' + processed;
     }
@@ -78,10 +98,29 @@ document.addEventListener('DOMContentLoaded', () => {
   function getThumbnailUrl(url) {
     if (!url) return '';
     let processed = url;
-    if (processed.includes('assets/images/') && !processed.includes('_thumb.')) {
+    const isNewUpload = processed.includes('lake_geneva_steamship') || 
+                        processed.includes('broken_chair_dusk') || 
+                        processed.includes('jet_deau_rainbow') || 
+                        processed.includes('geneva_street_towers') || 
+                        processed.includes('geneva_cathedral_aerial') || 
+                        processed.includes('old_town_lantern') || 
+                        processed.includes('jet_deau_night') || 
+                        processed.includes('mont_blanc_bridge_night') || 
+                        processed.includes('flower_clock_night') || 
+                        processed.includes('geneva_bike_ride_day') || 
+                        processed.includes('old_town_apartment_street') || 
+                        processed.includes('lakefront_bike_ride_sunset') || 
+                        processed.includes('geneva_marina_sunset') || 
+                        processed.includes('lake_geneva_sunset_jura') || 
+                        processed.includes('geneva_gelato_shop') || 
+                        processed.includes('geneva_bike_ride_night') || 
+                        processed.includes('itu_un_complex_dusk') || 
+                        processed.includes('geneva_airport_sunset') ||
+                        processed.endsWith('.mp4');
+
+    if (processed.includes('assets/images/') && !processed.includes('_thumb.') && !isNewUpload) {
       processed = processed.replace(/\.(jpg|jpeg|png|webp|avif)$/i, '_thumb.webp');
     }
-    // Ensure absolute path resolver to correct nested subdirectory path errors
     if (processed.startsWith('assets/')) {
       processed = '/' + processed;
     }
@@ -606,14 +645,27 @@ document.addEventListener('DOMContentLoaded', () => {
       if (currentGallery.length > 0) {
         const galleryItems = currentGallery.map((img, index) => {
           if (img.url) {
-            return `
-              <div class="gallery-card" data-index="${index}">
-                <img src="${getThumbnailUrl(img.url)}" alt="${img.caption}" loading="lazy" decoding="async" width="400" height="300">
-                <div class="gallery-overlay">
-                  <span class="gallery-caption">${img.caption}</span>
+            const isVideo = img.url.endsWith('.mp4');
+            if (isVideo) {
+              return `
+                <div class="gallery-card video-card" data-index="${index}">
+                  <video src="${getWebpUrl(img.url)}" muted loop playsinline class="gallery-video-preview" style="width: 100%; height: 100%; object-fit: cover;"></video>
+                  <div class="gallery-play-icon"><i class="fa-solid fa-play"></i></div>
+                  <div class="gallery-overlay">
+                    <span class="gallery-caption">${img.caption}</span>
+                  </div>
                 </div>
-              </div>
-            `;
+              `;
+            } else {
+              return `
+                <div class="gallery-card" data-index="${index}">
+                  <img src="${getThumbnailUrl(img.url)}" alt="${img.caption}" loading="lazy" decoding="async" width="400" height="300">
+                  <div class="gallery-overlay">
+                    <span class="gallery-caption">${img.caption}</span>
+                  </div>
+                </div>
+              `;
+            }
           } else {
             return `
               <div class="gallery-card placeholder">
@@ -794,6 +846,21 @@ document.addEventListener('DOMContentLoaded', () => {
         });
       });
 
+      // Play video on hover in gallery
+      const videoCards = contentContainer.querySelectorAll('.gallery-card.video-card');
+      videoCards.forEach(card => {
+        const video = card.querySelector('video');
+        if (video) {
+          card.addEventListener('mouseenter', () => {
+            video.play().catch(e => console.log("Auto-play blocked:", e));
+          });
+          card.addEventListener('mouseleave', () => {
+            video.pause();
+            video.currentTime = 0;
+          });
+        }
+      });
+
       if (scrollToContent && window.innerWidth <= 1024) {
         contentContainer.scrollIntoView({ behavior: 'smooth', block: 'start' });
       }
@@ -831,6 +898,10 @@ document.addEventListener('DOMContentLoaded', () => {
     lightbox.classList.remove('active');
     document.body.style.overflow = '';
     document.body.style.paddingRight = '';
+    if (lightboxVideo) {
+      lightboxVideo.pause();
+      lightboxVideo.src = '';
+    }
   }
 
   function nextImage() {
@@ -846,18 +917,33 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function updateLightboxImage() {
-    if (!lightboxImg) return;
+    if (!lightboxImg || !lightboxVideo) return;
     const item = currentGallery[currentImageIndex];
     if (!item) return;
     
-    lightboxImg.style.opacity = '0.5';
-    lightboxImg.src = getWebpUrl(item.url);
-    lightboxImg.alt = item.caption;
-    if (lightboxCaption) lightboxCaption.textContent = item.caption;
+    const isVideo = item.url.endsWith('.mp4');
     
-    lightboxImg.onload = () => {
-      lightboxImg.style.opacity = '1';
-    };
+    if (isVideo) {
+      lightboxImg.style.display = 'none';
+      lightboxVideo.style.display = 'block';
+      lightboxVideo.src = getWebpUrl(item.url);
+      if (lightboxCaption) lightboxCaption.textContent = item.caption;
+      lightboxVideo.play().catch(e => console.log("Video auto-play blocked:", e));
+    } else {
+      lightboxVideo.style.display = 'none';
+      lightboxVideo.pause();
+      lightboxVideo.src = '';
+      
+      lightboxImg.style.display = 'block';
+      lightboxImg.style.opacity = '0.5';
+      lightboxImg.src = getWebpUrl(item.url);
+      lightboxImg.alt = item.caption;
+      if (lightboxCaption) lightboxCaption.textContent = item.caption;
+      
+      lightboxImg.onload = () => {
+        lightboxImg.style.opacity = '1';
+      };
+    }
   }
 
   // --- Listeners Setup ---
