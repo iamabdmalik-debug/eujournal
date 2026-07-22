@@ -87,6 +87,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         processed.includes('geneva_airport_sunset') ||
                         processed.includes('un_flag') ||
                         processed.includes('sweet_spot') ||
+                        processed.includes('hero') ||
                         processed.endsWith('.mp4');
 
     if (processed.includes('assets/images/') && !isNewUpload) {
@@ -121,6 +122,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         processed.includes('geneva_airport_sunset') ||
                         processed.includes('un_flag') ||
                         processed.includes('sweet_spot') ||
+                        processed.includes('hero') ||
                         processed.endsWith('.mp4');
 
     if (processed.includes('assets/images/') && !processed.includes('_thumb.') && !isNewUpload) {
@@ -652,7 +654,7 @@ document.addEventListener('DOMContentLoaded', () => {
       },
 
       // --- France: Chamonix ---
-      'france_hero.webp': {
+      'hero.jpeg': {
         title: "Aiguille du Midi Cable Car",
         desc: "The steep cable car ascends from the Chamonix valley floor towards the towering heights of Aiguille du Midi at 3,842 meters. The dramatic ride rises high above pine trees and craggy rock faces.",
         meta: "Chamonix Valley • July 17"

@@ -3,7 +3,7 @@ const COUNTRY_DATA = {
   name: "France",
   flag: "🇫🇷",
   tagline: "From soaring alpine glaciers to historical landmarks.",
-  coverImage: "assets/images/france/france_hero.webp",
+  coverImage: "assets/images/france/hero.jpeg",
   cities: [
     {
       id: "paris",
@@ -40,7 +40,7 @@ const COUNTRY_DATA = {
       countryName: "France",
       travelDate: "July 20 - July 21, 2026",
       duration: "2 Days",
-      heroImage: "assets/images/france/france_hero.webp",
+      heroImage: "assets/images/france/hero.jpeg",
       introduction: "Nestled at the base of the Mont Blanc massif, Chamonix is a high-altitude wonderland of soaring peaks, crisp air, and dramatic alpine views.",
       favoriteMemory: "Taking the vertical cable car up to the peak of Aiguille du Midi and standing at 3,842 meters.",
       experiences: [
@@ -56,7 +56,7 @@ const COUNTRY_DATA = {
           subtitle: "Scaling the peaks of the Mont Blanc massif",
           date: "Day 8 - July 17",
           gallery: [
-            { url: "assets/images/france/france_hero.webp", caption: "The steep cable car ascending towards Aiguille du Midi" },
+            { url: "assets/images/france/hero.jpeg", caption: "The steep cable car ascending towards Aiguille du Midi" },
             { url: "assets/images/france/city_streets.webp", caption: "Panoramic views of the Mont Blanc peaks covered in pristine snow" }
           ],
           journal: "Taking the cable car from the valley floor of Chamonix to the top of Aiguille du Midi (3,842 meters) was breathtaking. Stepping out onto the viewing platforms, the air was thin, cold, and crisp. The dramatic jagged spires of the Alps stood tall under the brilliant sun, with massive glaciers spilling down between them. Looking at the majestic peaks of the Mont Blanc massif, it felt like being on top of the world. Exploring Chamonix afterward was delightful, filled with the energy of mountaineers and local chalet cafes."
