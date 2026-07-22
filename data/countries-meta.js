@@ -4,7 +4,7 @@ const COUNTRIES_META = [
     name: "Switzerland",
     flag: "🇨🇭",
     tagline: "Alpine lakes & global peace monuments.",
-    coverImage: "assets/images/switzerland/lake_geneva.webp",
+    coverImage: "assets/images/switzerland/lake_geneva_steamship.jpg",
     path: "/countries/switzerland/"
   },
   {

@@ -3,7 +3,7 @@ const COUNTRY_DATA = {
   name: "Switzerland",
   flag: "🇨🇭",
   tagline: "Alpine lakes & global peace monuments.",
-  coverImage: "assets/images/switzerland/lake_geneva_sunset_jura.jpg",
+  coverImage: "assets/images/switzerland/lake_geneva_steamship.jpg",
   cities: [
     {
       id: "geneva",
