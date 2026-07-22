@@ -632,109 +632,8 @@ document.addEventListener('DOMContentLoaded', () => {
       </div>
     `;
 
-    // Static metadata mapping for integrating photos into story blocks with descriptions
+    // Static fallback metadata mapping for other countries
     const IMAGE_STORY_META = {
-      // --- Switzerland: Place des Nations & Broken Chair ---
-      'broken_chair_dusk.jpg': {
-        title: "The Broken Chair",
-        desc: "Opposite the United Nations gates stands the Broken Chair—a monumental wood sculpture by Daniel Berset with a shattered leg. It stands as a silent, powerful protest against landmines and cluster bombs, symbolizing Place des Nations' historical role in international peace efforts.",
-        meta: "Place des Nations • July 10"
-      },
-      'itu_un_complex_dusk.jpg': {
-        title: "UN Palais des Nations",
-        desc: "Standing in front of the Palais des Nations is a profound experience. The long avenue lined with colorful flags of member nations speaks to the hope of global cooperation, while the glowing office windows at dusk represent the constant work of peace diplomacy.",
-        meta: "Palais des Nations • July 10"
-      },
-
-      // --- Switzerland: Jet d'Eau ---
-      'jet_deau_rainbow.jpg': {
-        title: "Fountain and Rainbow",
-        desc: "The iconic Jet d'Eau shoots water 140 meters high into the sky over Lake Geneva. When the evening sun catches the water mist, a fleeting rainbow arches beautifully over the harbor, creating a magical lakeside view.",
-        meta: "Lake Geneva • July 12"
-      },
-      'lake_geneva_steamship.jpg': {
-        title: "Lakeside Paddle Steamer",
-        desc: "A classic Swiss paddle steamer cruises past the towering water column of the Jet d'Eau. The historical steamship, flying the Swiss flag, represents Geneva's rich maritime heritage on the lake.",
-        meta: "Lake Geneva • July 12"
-      },
-      'lake_geneva_boat_video.mp4': {
-        title: "Cruising Lake Geneva",
-        desc: "A peaceful boat ride across the crystal-clear waters of Lake Geneva offers refreshing alpine breezes. The cruise highlights the majestic mountain reflections and scenic shores of Geneva's harbor.",
-        meta: "Lake Geneva • July 12"
-      },
-      'lake_geneva_sunset_jura.jpg': {
-        title: "Sunset over the Jura",
-        desc: "A wide, panoramic view of Lake Geneva at sunset, with the silhouette of the Jura Mountains in the distance. The golden hues reflecting on the water capture the calm, peaceful alpine atmosphere.",
-        meta: "Lake Geneva • July 12"
-      },
-      'geneva_marina_sunset.jpg': {
-        title: "Sunset over the Marina",
-        desc: "Dozens of local sailboats and yachts docked at the Geneva marina silhouetted against a brilliant sunset sky, reflecting the quiet evening lakeside charm.",
-        meta: "Lake Geneva • July 12"
-      },
-      'geneva_gelato_shop.jpg': {
-        title: "Lakeside Gelato Treat",
-        desc: "Sampling some infamous local Italian gelato from a shop right alongside the Jet d'Eau. Enjoying colorful scoops of sweet treats is a perfect way to relax during a sunny day of lakeside walking.",
-        meta: "Lake Geneva • July 12"
-      },
-      'jet_deau_night.jpg': {
-        title: "Jet d'Eau at Night",
-        desc: "The Jet d'Eau illuminated in brilliant white against the night sky, throwing a giant column of water that glows alongside the city's harbor lights.",
-        meta: "Lake Geneva • July 12"
-      },
-
-      // --- Switzerland: City Vibe ---
-      'geneva_cathedral_aerial.jpg': {
-        title: "St. Pierre Cathedral View",
-        desc: "An aerial view overlooking the rooftops of Geneva's historic Old Town, centered around the green-roofed spire of St. Pierre Cathedral. The historic district climbs uphill, offering panoramic views of the city below.",
-        meta: "Vieille Ville • July 14"
-      },
-      'old_town_apartment_street.jpg': {
-        title: "Alleyways of Old Town",
-        desc: "A quiet, narrow cobblestone alleyway lined with traditional window-shuttered apartments. Walking these historic paths transports you through centuries of Geneva's residential heritage.",
-        meta: "Vieille Ville • July 14"
-      },
-      'old_town_lantern.jpg': {
-        title: "Vieille Ville Lanterns",
-        desc: "A warm street lantern glows on a stone building wall in the Old Town at dusk. The soft golden light highlights the quiet, atmospheric charm of Geneva's historic heart.",
-        meta: "Vieille Ville • July 14"
-      },
-      'flower_clock_night.jpg': {
-        title: "The Flower Clock",
-        desc: "Geneva's famous Flower Clock (L'horloge fleurie) illuminated in the Jardin Anglais at night. This beautiful living monument of thousands of seasonal flowers celebrates the city's legendary history of Swiss watchmaking.",
-        meta: "Jardin Anglais • July 14"
-      },
-      'geneva_bike_ride_day.jpg': {
-        title: "Exploring by Bike",
-        desc: "Renting a local bike to explore Geneva's wide streets, clock towers, and tram crossings. Navigating through the city on two wheels is the perfect way to feel the local speed and energy.",
-        meta: "Geneva Center • July 14"
-      },
-      'geneva_street_towers.jpg': {
-        title: "Geneva Streets and Architecture",
-        desc: "A view down a street in central Geneva with traditional clock towers and tram tracks overhead, representing the daily rhythm and architectural heritage of the city.",
-        meta: "Geneva Center • July 14"
-      },
-      'mont_blanc_bridge_night.jpg': {
-        title: "View from the Ferris Wheel",
-        desc: "A spectacular night view looking down at the Mont-Blanc Bridge lights, captured from the top of the Geneva Ferris Wheel alongside the lake.",
-        meta: "Lake Geneva • July 14"
-      },
-      'geneva_bike_ride_night.jpg': {
-        title: "Night Cycling Route",
-        desc: "Cycling through the peaceful, lit-up streets of Geneva at night. The green traffic lights guide a quiet ride back along the urban bike lanes.",
-        meta: "Geneva Center • July 14"
-      },
-      'lakefront_bike_ride_sunset.jpg': {
-        title: "Sunset Lakefront Ride",
-        desc: "Catching the sunset on a bike ride along the Geneva lakefront promenade. Pedaling with views of the orange sky and families relaxing on the grass is a perfect evening highlight.",
-        meta: "Lake Geneva • July 14"
-      },
-      'geneva_airport_sunset.jpg': {
-        title: "GVA Station Sunset",
-        desc: "Arriving at the Geneva GVA airport station under a soft orange sunset sky, marking the beginning of a fresh Swiss exploration.",
-        meta: "GVA Station • July 14"
-      },
-
       // --- France: Paris ---
       'paris_eiffel.webp': {
         title: "Eiffel Tower Afternoon",
@@ -772,10 +671,18 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     };
 
-    function getImageStoryMeta(url, caption, index, cityId) {
-      const filename = url.substring(url.lastIndexOf('/') + 1);
-      
-      // Handle Dortmund city_streets.webp duplicates
+    function getImageStoryMeta(img, index, cityId) {
+      // 1. Try to read directly from the data file properties (preferred data-driven approach)
+      if (img.title && img.description) {
+        return {
+          title: img.title,
+          desc: img.description,
+          meta: img.location || img.caption || ""
+        };
+      }
+
+      // 2. Fall back to static map lookup if available (e.g. for France and Germany)
+      const filename = img.url.substring(img.url.lastIndexOf('/') + 1);
       if (filename === 'city_streets.webp' && cityId === 'dortmund') {
         const key = `city_streets.webp_dortmund_${index}`;
         if (IMAGE_STORY_META[key]) return IMAGE_STORY_META[key];
@@ -785,10 +692,11 @@ document.addEventListener('DOMContentLoaded', () => {
         return IMAGE_STORY_META[filename];
       }
       
+      // 3. Absolute fallback to caption
       return {
-        title: caption || "Travel Capture",
+        title: img.caption || "Travel Capture",
         desc: "A beautiful perspective captured along the way during my European travel journey.",
-        meta: ""
+        meta: img.caption || ""
       };
     }
 
@@ -801,30 +709,18 @@ document.addEventListener('DOMContentLoaded', () => {
 
       currentGallery = chapter.gallery || [];
 
-      // Divide gallery into Story Blocks (first 2-4 items) and compact bottom gallery (remaining items)
-      let storyBlocksItems = [];
-      let extraGalleryItems = [];
-
-      if (currentGallery.length <= 4) {
-        storyBlocksItems = currentGallery;
-        extraGalleryItems = [];
-      } else {
-        storyBlocksItems = currentGallery.slice(0, 4);
-        extraGalleryItems = currentGallery.slice(4);
-      }
-
-      // 1. Alternating Image-and-Text Story Blocks HTML
+      // Render ALL gallery images as alternating story blocks
       let storyBlocksHTML = '';
-      if (storyBlocksItems.length > 0) {
+      if (currentGallery.length > 0) {
         storyBlocksHTML = `
           <div class="story-blocks-container">
-            ${storyBlocksItems.map((img, index) => {
+            ${currentGallery.map((img, index) => {
               const isVideo = img.url.endsWith('.mp4');
-              const meta = getImageStoryMeta(img.url, img.caption, index, city.id);
+              const meta = getImageStoryMeta(img, index, city.id);
               
               const mediaTag = isVideo 
                 ? `<video src="${getWebpUrl(img.url)}" muted loop playsinline class="story-block-image" style="width:100%; height:100%; object-fit:cover;"></video>` 
-                : `<img src="${getWebpUrl(img.url)}" alt="${img.caption}" loading="${index === 0 ? 'eager' : 'lazy'}" decoding="async" class="story-block-image" width="600" height="340">`;
+                : `<img src="${getWebpUrl(img.url)}" alt="${img.caption || meta.title}" loading="${index === 0 ? 'eager' : 'lazy'}" decoding="async" class="story-block-image" width="600" height="340">`;
               
               const playIconHTML = isVideo ? `<div class="gallery-play-icon" style="z-index: 5;"><i class="fa-solid fa-play"></i></div>` : '';
               
@@ -846,52 +742,12 @@ document.addEventListener('DOMContentLoaded', () => {
         `;
       }
 
-      // 2. Full Journal Text Block HTML (Preserves the full written stories beautifully)
+      // Full Journal Text Block (Preserves the full written stories beautifully, rendered before story blocks)
       const journalFullStoryHTML = `
-        <div class="journal-full-story">
-          <h4 class="journal-full-story-title"><i class="fa-solid fa-book-open"></i> Full Journal Entry</h4>
+        <div class="chapter-body">
           <p class="journal-text">${chapter.journal}</p>
         </div>
       `;
-
-      // 3. Compact "More from [City]" Bottom Gallery HTML
-      let extraGalleryHTML = '';
-      if (extraGalleryItems.length > 0) {
-        const extraItems = extraGalleryItems.map((img, index) => {
-          const actualIndex = index + 4; // Map back to actual index in currentGallery
-          const isVideo = img.url.endsWith('.mp4');
-          
-          if (isVideo) {
-            return `
-              <div class="extra-gallery-card gallery-card video-card" data-index="${actualIndex}">
-                <video src="${getWebpUrl(img.url)}" muted loop playsinline class="gallery-video-preview"></video>
-                <div class="gallery-play-icon"><i class="fa-solid fa-play"></i></div>
-                <div class="gallery-overlay">
-                  <span class="gallery-caption">${img.caption}</span>
-                </div>
-              </div>
-            `;
-          } else {
-            return `
-              <div class="extra-gallery-card gallery-card" data-index="${actualIndex}">
-                <img src="${getThumbnailUrl(img.url)}" alt="${img.caption}" loading="lazy" decoding="async" width="200" height="150">
-                <div class="gallery-overlay">
-                  <span class="gallery-caption">${img.caption}</span>
-                </div>
-              </div>
-            `;
-          }
-        }).join('');
-
-        extraGalleryHTML = `
-          <div class="extra-gallery-section">
-            <h3 class="extra-gallery-title"><i class="fa-solid fa-images"></i> More from ${city.name}</h3>
-            <div class="extra-gallery-grid">
-              ${extraItems}
-            </div>
-          </div>
-        `;
-      }
 
       // City headers (Hero banner and intro text)
       let cityHeaderHTML = '';
@@ -990,13 +846,11 @@ document.addEventListener('DOMContentLoaded', () => {
             <div class="chapter-subtitle-main">${chapter.subtitle}</div>
           </div>
           
-          ${storyBlocksHTML}
-          
           ${journalFullStoryHTML}
           
-          ${reflectionsHTML}
+          ${storyBlocksHTML}
           
-          ${extraGalleryHTML}
+          ${reflectionsHTML}
         </div>
       `;
 
@@ -1011,34 +865,32 @@ document.addEventListener('DOMContentLoaded', () => {
         });
       });
 
+      // Bind back to selector button if it exists
       const btnBackSelector = contentContainer.querySelector('#btn-back-cities-selector');
       if (btnBackSelector) {
         btnBackSelector.addEventListener('click', () => {
-          activeCityId = null;
-          activeChapterId = null;
-          
-          // Reset selector cards active classes
           if (citySelectionView) {
-            const cards = citySelectionView.querySelectorAll('.city-selection-card');
-            cards.forEach(c => {
-              c.classList.remove('active');
-              c.setAttribute('aria-pressed', 'false');
-            });
+            journalSection.style.display = 'none';
+            statsPillGroup.style.display = 'none';
+            citySelectionView.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            
+            // Set hash back to empty
+            history.pushState("", document.title, window.location.pathname + window.location.search);
           }
-          
-          journalSection.style.display = 'none';
-          statsPillGroup.style.display = 'none';
-          citySelectionView.style.display = 'block';
-          citySelectionView.classList.add('fade-in');
-          
-          // Reset hero to country cover
-          if (COUNTRY_DATA.coverImage) {
-            heroSection.style.backgroundImage = `url('${getWebpUrl(COUNTRY_DATA.coverImage)}')`;
-          }
-          heroTitleText.textContent = COUNTRY_DATA.name;
-          heroTaglineText.textContent = `Stories collected along the way.`;
-          heroLeadText.textContent = COUNTRY_DATA.tagline;
         });
+      }
+
+      if (COUNTRY_DATA.id === 'france') {
+        const backToSelector = document.getElementById('back-to-selector-btn');
+        if (backToSelector) backToSelector.style.display = 'block';
+      }
+
+      // Reset scroll to top of content if requested
+      if (scrollToContent) {
+        const topAnchor = document.getElementById('main-content-anchor');
+        if (topAnchor) {
+          topAnchor.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
       }
 
       setTimeout(() => {
@@ -1055,14 +907,6 @@ document.addEventListener('DOMContentLoaded', () => {
             block.classList.add('visible');
           }, idx * 100);
         });
-
-        // Reveal the full story block right after the story blocks transition
-        const fullStory = contentContainer.querySelector('.journal-full-story');
-        if (fullStory) {
-          setTimeout(() => {
-            fullStory.classList.add('visible');
-          }, storyBlocks.length * 100);
-        }
       }, 50);
 
       const cards = contentContainer.querySelectorAll('.gallery-card:not(.placeholder)');
