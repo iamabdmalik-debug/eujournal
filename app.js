@@ -144,6 +144,55 @@ document.addEventListener('DOMContentLoaded', () => {
     return processed;
   }
 
+  // --- Scroll Reveal (IntersectionObserver-driven, respects prefers-reduced-motion) ---
+  const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  let scrollRevealObserver = null;
+
+  // Elements whose CSS already defines a hidden .visible-toggled state (opacity + translateY)
+  const REVEAL_SLIDE_SELECTOR = '.story-block, .journal-full-story, .reflection-card';
+  // Elements that already animate `transform` on :hover, so reveal only fades opacity in via JS
+  const REVEAL_FADE_SELECTOR = '.gallery-card:not(.placeholder), .extra-gallery-card, .country-card, .city-card, .city-selection-card';
+
+  function getScrollRevealObserver() {
+    if (scrollRevealObserver) return scrollRevealObserver;
+    scrollRevealObserver = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (!entry.isIntersecting) return;
+        const el = entry.target;
+        el.classList.add('visible');
+        if (el.dataset.revealFade) {
+          el.style.opacity = '1';
+        }
+        scrollRevealObserver.unobserve(el);
+      });
+    }, { threshold: 0.12, rootMargin: '0px 0px -10% 0px' });
+    return scrollRevealObserver;
+  }
+
+  // Wires up scroll-triggered reveals for narrative/photo content within `root`.
+  // Replaces fixed-timer entrance animations so content animates in as the reader
+  // actually scrolls to it, rather than all at once on chapter load.
+  function initScrollReveal(root = document) {
+    if (prefersReducedMotion) return;
+    const observer = getScrollRevealObserver();
+
+    root.querySelectorAll(REVEAL_SLIDE_SELECTOR).forEach((el, i) => {
+      if (el.dataset.revealBound) return;
+      el.dataset.revealBound = 'true';
+      el.style.transitionDelay = `${(i % 5) * 70}ms`;
+      observer.observe(el);
+    });
+
+    root.querySelectorAll(REVEAL_FADE_SELECTOR).forEach((el, i) => {
+      if (el.dataset.revealBound) return;
+      el.dataset.revealBound = 'true';
+      el.dataset.revealFade = 'true';
+      el.style.opacity = '0';
+      el.style.transitionDelay = `${(i % 6) * 60}ms`;
+      observer.observe(el);
+    });
+  }
+
   // --- Initialize Application ---
   initApp();
 
@@ -158,6 +207,8 @@ document.addEventListener('DOMContentLoaded', () => {
     } else {
       updateViewVisibility();
     }
+
+    initScrollReveal(document);
   }
 
   // --- Theme Logic ---
@@ -320,7 +371,7 @@ document.addEventListener('DOMContentLoaded', () => {
       
       // Correctly reveal the active views without overlapping
       if (activeCityId !== null) {
-        if (journalSection) journalSection.style.display = 'block';
+        if (journalSection) journalSection.style.display = 'grid';
         if (citySelectionView) citySelectionView.style.display = 'block'; // Keep selection cards visible at top
         if (statsPillGroup) statsPillGroup.style.display = 'flex';
       } else {
@@ -406,6 +457,8 @@ document.addEventListener('DOMContentLoaded', () => {
         }
       });
     });
+
+    initScrollReveal(citySelectionView);
   }
 
   // --- Select City with Transition and Scroll ---
@@ -489,7 +542,7 @@ document.addEventListener('DOMContentLoaded', () => {
     statsPillGroup.style.display = 'flex';
 
     // Show content container
-    journalSection.style.display = 'block';
+    journalSection.style.display = 'grid';
     journalSection.classList.add('fade-in');
 
     renderSidebar();
@@ -640,14 +693,6 @@ document.addEventListener('DOMContentLoaded', () => {
   // --- Load and Render Chapter ---
   function loadChapter(chapterId, scrollToContent = false) {
     if (!contentContainer) return;
-    
-    // Render a lightweight loading spinner while parsing/switching chapters
-    contentContainer.innerHTML = `
-      <div class="chapter-content-loading" style="display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 60px; gap: 16px; color: var(--text-muted);">
-        <i class="fa-solid fa-spinner fa-spin" style="font-size: 2rem; color: var(--primary-color);"></i>
-        <p style="font-family: 'Inter', sans-serif; font-size: 0.95rem;">Loading travel details...</p>
-      </div>
-    `;
 
     // Static fallback metadata mapping for other countries
     const IMAGE_STORY_META = {
@@ -740,11 +785,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 : `<img src="${getWebpUrl(img.url)}" alt="${img.caption || meta.title}" loading="${index === 0 ? 'eager' : 'lazy'}" decoding="async" class="story-block-image" width="600" height="340">`;
               
               const playIconHTML = isVideo ? `<div class="gallery-play-icon" style="z-index: 5;"><i class="fa-solid fa-play"></i></div>` : '';
-              
+              const frameIndexHTML = `<span class="gallery-frame-index">N&deg;${String(index + 1).padStart(2, '0')}</span>`;
+
               return `
                 <div class="story-block">
                   <div class="story-block-image-wrapper gallery-card ${isVideo ? 'video-card' : ''}" data-index="${index}">
                     ${mediaTag}
+                    ${frameIndexHTML}
                     ${playIconHTML}
                   </div>
                   <div class="story-block-content">
@@ -854,10 +901,10 @@ document.addEventListener('DOMContentLoaded', () => {
       `;
 
       const htmlContent = `
-        <div class="chapter-content" style="opacity: 0; transform: translateY(15px); transition: opacity 0.4s var(--transition-bezier), transform 0.4s var(--transition-bezier);">
+        <div class="chapter-content" style="opacity: 0; transform: translateY(15px); transition: opacity 0.4s var(--ease), transform 0.4s var(--ease);">
           ${cityHeaderHTML}
-          
-          <div class="chapter-header" style="margin-top: 30px; border-top: 1px solid var(--border-color); padding-top: 24px;">
+
+          <div class="chapter-header" style="margin-top: 30px; border-top: 1px solid var(--border); padding-top: 24px;">
             <span class="chapter-date-badge"><i class="fa-regular fa-clock"></i> ${chapter.date}</span>
             <h2 class="chapter-title-main">${chapter.title}</h2>
             <div class="chapter-subtitle-main">${chapter.subtitle}</div>
@@ -917,13 +964,8 @@ document.addEventListener('DOMContentLoaded', () => {
           newContent.style.transform = 'translateY(0)';
         }
 
-        // Premium staggered slide/fade-in transitions for story blocks
-        const storyBlocks = contentContainer.querySelectorAll('.story-block');
-        storyBlocks.forEach((block, idx) => {
-          setTimeout(() => {
-            block.classList.add('visible');
-          }, idx * 100);
-        });
+        // Reveal story blocks, galleries and reflection cards as the reader scrolls to them
+        initScrollReveal(contentContainer);
       }, 50);
 
       const cards = contentContainer.querySelectorAll('.gallery-card:not(.placeholder)');
@@ -955,10 +997,10 @@ document.addEventListener('DOMContentLoaded', () => {
     } catch (err) {
       console.error("Error loading travel chapter:", err);
       contentContainer.innerHTML = `
-        <div class="chapter-content-error" style="text-align: center; padding: 50px 30px; color: var(--text-main);">
-          <i class="fa-solid fa-circle-exclamation" style="font-size: 3rem; color: var(--primary-color); margin-bottom: 16px;"></i>
-          <h3 style="font-family: 'Playfair Display', serif; font-size: 1.5rem; margin-bottom: 8px;">Failed to Load Page</h3>
-          <p style="font-family: 'Inter', sans-serif; font-size: 0.95rem; color: var(--text-muted); margin-bottom: 20px;">This travel chapter could not be loaded. Please try again.</p>
+        <div class="chapter-content-error" style="text-align: center; padding: 50px 30px; color: var(--text);">
+          <i class="fa-solid fa-circle-exclamation" style="font-size: 3rem; color: var(--accent); margin-bottom: 16px;"></i>
+          <h3 style="font-family: var(--font-display); font-size: 1.5rem; margin-bottom: 8px;">Failed to Load Page</h3>
+          <p style="font-family: var(--font-body); font-size: 0.95rem; color: var(--text-muted); margin-bottom: 20px;">This travel chapter could not be loaded. Please try again.</p>
           <button onclick="window.location.reload()" class="btn-secondary-outline" style="margin: 0 auto;">Retry Load</button>
         </div>
       `;
